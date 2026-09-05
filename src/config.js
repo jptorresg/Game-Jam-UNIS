@@ -50,7 +50,7 @@ export const GAME_CONFIG = {
         label: "MANANA",
         from: 9,
         modifiers: ["none", "uppercase"],
-        distractions: false,
+        distractions: true, // ya salen desde el arranque del turno (mas ralas por el nivel bajo)
       },
       {
         id: "afternoon",
@@ -108,11 +108,11 @@ export const GAME_CONFIG = {
   // --- Distracciones ---
   // Roam lento por la oficina; al tocar al personaje aplican un efecto de
   // pantalla (blur / negro) en vez de restar productividad.
-  initialDistractionInterval: 5.5,
-  minDistractionInterval: 2,
+  initialDistractionInterval: 4.2,
+  minDistractionInterval: 1.5,
   distractionIntervalPerLevel: 0.42,
-  maxActiveDistractions: 4,
-  firstDistractionLevel: 2, // no aparecen distracciones antes de este nivel
+  maxActiveDistractions: 5,
+  firstDistractionLevel: 0, // (sin uso: la fase decide si hay distracciones)
 
   // --- Penalizaciones a la productividad ---
   penalties: {
