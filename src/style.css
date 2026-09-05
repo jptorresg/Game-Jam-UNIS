@@ -772,6 +772,24 @@ body {
   to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
 }
 
+/* Rayo del personaje al enemigo (imagen del equipo, sin alfa -> blend screen). */
+.fx-beam {
+  position: absolute;
+  height: 20px;
+  transform-origin: 0 50%;
+  background: url("/images/character/rayo.jpg") center / 100% 100% no-repeat;
+  mix-blend-mode: screen;
+  filter: brightness(1.4) saturate(1.25);
+  pointer-events: none;
+  animation: fx-beam 0.22s ease-out forwards;
+}
+
+@keyframes fx-beam {
+  0% { opacity: 0.15; transform: rotate(var(--ang)) scaleX(0.12); }
+  35% { opacity: 1; transform: rotate(var(--ang)) scaleX(1); }
+  100% { opacity: 0; transform: rotate(var(--ang)) scaleX(1); }
+}
+
 .fx-float {
   position: absolute;
   transform: translate(-50%, -50%);
