@@ -111,6 +111,7 @@ export class DistractionManager extends EventTarget {
       id: `distraction-${String(this._nextId++).padStart(3, "0")}`,
       type,
       glyph: def.glyph,
+      img: def.img || null,
       label: def.label,
       tone: def.tone,
       effect: def.effect,
