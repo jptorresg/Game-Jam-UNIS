@@ -31,12 +31,18 @@ export class GameUI {
       this._onDistractionGone(e.detail),
     );
     this.game.addEventListener("screenEffect", (e) => this._screenEffect(e.detail));
+    this.game.addEventListener("phaseChange", (e) =>
+      this.effects.banner(e.detail.banner),
+    );
+    this.game.addEventListener("tutorialStep", () => this.effects.banner("¡BIEN!"));
 
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const status = this.game.state.status;
       if (status === GameStatus.MENU || status === GameStatus.GAME_OVER) {
         this.game.start();
+      } else if (status === GameStatus.BREAK) {
+        this.game.nextShift();
       }
     });
 
@@ -48,7 +54,7 @@ export class GameUI {
       <div class="hud">
         <div class="hud__stat"><span class="hud__label">PUNTOS</span><span data-hud="score">0</span></div>
         <div class="hud__stat"><span class="hud__label">COMBO</span><span data-hud="combo">x1</span></div>
-        <div class="hud__stat"><span class="hud__label">NIVEL</span><span data-hud="level">1</span></div>
+        <div class="hud__stat"><span class="hud__label">TURNO</span><span data-hud="shift">1</span></div>
         <div class="hud__stat hud__stat--prod">
           <span class="hud__label">PRODUCTIVIDAD</span>
           <span><span data-hud="productivity">100</span>%</span>
@@ -57,15 +63,15 @@ export class GameUI {
       </div>
 
       <div class="office" data-region="office">
-        <div class="office__scene" aria-hidden="true">
-          <div class="office__wall">
-            <div class="office__window"><div class="office__sky"></div></div>
-            <div class="office__clock"></div>
-            <div class="office__poster"></div>
-          </div>
-          <div class="office__floor"></div>
-          <div class="office__cabinet"></div>
-          <div class="office__plant"></div>
+        <div class="clock" data-region="clock" hidden>
+          <div class="clock__time" data-clock="time">9:00 AM</div>
+          <div class="clock__phase" data-clock="phase">MANANA</div>
+        </div>
+
+        <div class="tutorial-bar" data-region="tutorialbar" hidden>
+          <div class="tutorial-bar__title" data-tut="title"></div>
+          <div class="tutorial-bar__desc" data-tut="desc"></div>
+          <div class="tutorial-bar__count" data-tut="count"></div>
         </div>
 
         <div class="stage" data-region="stage">
@@ -96,7 +102,7 @@ export class GameUI {
     this.els = {
       score: this.root.querySelector('[data-hud="score"]'),
       combo: this.root.querySelector('[data-hud="combo"]'),
-      level: this.root.querySelector('[data-hud="level"]'),
+      shift: this.root.querySelector('[data-hud="shift"]'),
       productivity: this.root.querySelector('[data-hud="productivity"]'),
       prodbar: this.root.querySelector('[data-hud="prodbar"]'),
       office: this.root.querySelector('[data-region="office"]'),
@@ -108,6 +114,13 @@ export class GameUI {
       overlayPanel: this.root.querySelector('[data-region="overlay-panel"]'),
       fx: this.root.querySelector('[data-region="fx"]'),
       screenblack: this.root.querySelector('[data-region="screenblack"]'),
+      clock: this.root.querySelector('[data-region="clock"]'),
+      clockTime: this.root.querySelector('[data-clock="time"]'),
+      clockPhase: this.root.querySelector('[data-clock="phase"]'),
+      tutorialBar: this.root.querySelector('[data-region="tutorialbar"]'),
+      tutTitle: this.root.querySelector('[data-tut="title"]'),
+      tutDesc: this.root.querySelector('[data-tut="desc"]'),
+      tutCount: this.root.querySelector('[data-tut="count"]'),
     };
     this.effects = new Effects(this.els.fx);
     this._blurTimer = null;
@@ -115,8 +128,13 @@ export class GameUI {
   }
 
   render(state) {
-    // Limpia los efectos al empezar una partida nueva.
-    if (state.status === GameStatus.PLAYING && this._prevStatus !== GameStatus.PLAYING) {
+    // Limpia los efectos al entrar a un turno o al tutorial.
+    const activePlay =
+      state.status === GameStatus.PLAYING || state.status === GameStatus.TUTORIAL;
+    const wasActivePlay =
+      this._prevStatus === GameStatus.PLAYING ||
+      this._prevStatus === GameStatus.TUTORIAL;
+    if (activePlay && !wasActivePlay) {
       this.effects.clear();
       this._clearScreenEffects();
     }
@@ -124,11 +142,14 @@ export class GameUI {
 
     setText(this.els.score, state.score);
     setText(this.els.combo, `x${comboMultiplier(state.combo)}`);
-    setText(this.els.level, state.level);
+    setText(this.els.shift, state.shift);
     setText(this.els.productivity, Math.ceil(state.productivity));
     this.els.prodbar.style.width = `${Math.max(0, state.productivity)}%`;
     this.els.prodbar.classList.toggle("prod-bar__fill--low", state.productivity <= 30);
     this.els.combo.parentElement.classList.toggle("hud__stat--hot", state.combo >= 5);
+
+    this._renderClock(state);
+    this._renderTutorialBar(state);
 
     // Estilo ZType: sin objetivo se resalta la primera letra de cada palabra;
     // con objetivo se atenuan las demas.
@@ -326,9 +347,39 @@ export class GameUI {
     this.els.screenblack.hidden = true;
   }
 
+  _renderClock(state) {
+    const show =
+      state.status === GameStatus.PLAYING ||
+      state.status === GameStatus.PAUSED ||
+      state.status === GameStatus.BREAK;
+    this.els.clock.hidden = !show;
+    if (!show) return;
+
+    setText(this.els.clockTime, state.clock);
+    const phase = GAME_CONFIG.schedule.phases.find((p) => p.id === state.phase);
+    setText(this.els.clockPhase, phase ? phase.label : "");
+    this.els.clock.classList.toggle("clock--rush", state.phase === "rush");
+  }
+
+  _renderTutorialBar(state) {
+    const on = state.status === GameStatus.TUTORIAL;
+    this.els.tutorialBar.hidden = !on;
+    if (!on) return;
+
+    const step = GAME_CONFIG.tutorial.steps[state.tutorialStep];
+    if (!step) return;
+    this.els.tutorialBar.className = `tutorial-bar tutorial-bar--${step.color}`;
+    setText(this.els.tutTitle, step.title);
+    setText(this.els.tutDesc, step.desc);
+    setText(
+      this.els.tutCount,
+      `${state.tutorialProgress} / ${GAME_CONFIG.tutorial.requiredPerStep}`,
+    );
+  }
+
   _renderOverlay(state) {
     const { status } = state;
-    if (status === GameStatus.PLAYING) {
+    if (status === GameStatus.PLAYING || status === GameStatus.TUTORIAL) {
       this.els.overlay.hidden = true;
       return;
     }
@@ -337,10 +388,10 @@ export class GameUI {
     if (status === GameStatus.MENU) {
       this.els.overlayPanel.innerHTML = `
         <h1>OFFICE PANIC</h1>
-        <p>Los reportes llegan hacia ti desde todos lados. Escribe su palabra
-        antes de que te alcancen y elimina las distracciones con click.</p>
-        <p class="overlay__hint">Escribe directo &middot; Click para enfocar un reporte o quitar una distraccion &middot; Esc pausa</p>
-        <button data-action="start">INICIAR</button>
+        <p>Trabajas turnos de 9 a 5. Cada color de carpeta es un reto distinto.
+        Escribe su palabra antes de que te alcance y quita las distracciones con click.</p>
+        <p class="overlay__hint">Empieza escribiendo &middot; el turno 1 arranca con un tutorial &middot; Esc pausa</p>
+        <button data-action="start">FICHAR</button>
         <p class="overlay__hint">o pulsa Enter</p>
       `;
     } else if (status === GameStatus.PAUSED) {
@@ -349,11 +400,20 @@ export class GameUI {
         <button data-action="resume">CONTINUAR</button>
         <p class="overlay__hint">o pulsa Esc</p>
       `;
+    } else if (status === GameStatus.BREAK) {
+      this.els.overlayPanel.innerHTML = `
+        <h1>FIN DEL TURNO ${state.shift}</h1>
+        <p>Buen trabajo. Te tomas un descanso.</p>
+        <p class="overlay__score">${state.score} puntos</p>
+        <p class="overlay__hint">Productividad restaurada al 100%</p>
+        <button data-action="next">SIGUIENTE TURNO</button>
+        <p class="overlay__hint">o pulsa Enter</p>
+      `;
     } else if (status === GameStatus.GAME_OVER) {
       this.els.overlayPanel.innerHTML = `
         <h1>DESPEDIDO</h1>
-        <p>Tu productividad llego a cero.</p>
-        <p class="overlay__score">${state.score} puntos &middot; nivel ${state.level}</p>
+        <p>Tu productividad llego a cero en el turno ${state.shift}.</p>
+        <p class="overlay__score">${state.score} puntos</p>
         <button data-action="restart">REINTENTAR</button>
         <p class="overlay__hint">o pulsa Enter</p>
       `;
@@ -362,7 +422,9 @@ export class GameUI {
     const button = this.els.overlayPanel.querySelector("button");
     if (button) {
       button.addEventListener("click", () => {
-        if (button.dataset.action === "resume") this.game.togglePause();
+        const action = button.dataset.action;
+        if (action === "resume") this.game.togglePause();
+        else if (action === "next") this.game.nextShift();
         else this.game.start();
       });
     }

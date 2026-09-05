@@ -17,13 +17,15 @@ export class ReportManager extends EventTarget {
     this._nextId = 1;
     this._recentWords = [];
 
-    // Estos valores los ajusta Game desde DifficultySystem.
+    // Estos valores los ajusta Game desde DifficultySystem / la fase de la jornada.
     this.spawnInterval = GAME_CONFIG.initialSpawnInterval;
     this.reportTime = GAME_CONFIG.initialReportTime;
     this.maxActiveReports = GAME_CONFIG.initialMaxActiveReports;
+    this.allowedModifiers = null; // null = todos; la fase pasa su lista
   }
 
-  reset(state) {
+  // Deja el manager listo pero sin generar ningun reporte todavia.
+  clearOnly(state) {
     this.state = state;
     this._spawnTimer = 0;
     this._nextId = 1;
@@ -32,6 +34,10 @@ export class ReportManager extends EventTarget {
     this.reportTime = GAME_CONFIG.initialReportTime;
     this.maxActiveReports = GAME_CONFIG.initialMaxActiveReports;
     this.state.reports.length = 0;
+  }
+
+  reset(state) {
+    this.clearOnly(state);
     this.spawnReport();
   }
 
@@ -72,7 +78,10 @@ export class ReportManager extends EventTarget {
     let expectedInput;
     for (let attempt = 0; attempt < 16; attempt++) {
       word = randomWord();
-      modifier = this.modifierSystem.getRandomModifier(this.state.level);
+      modifier = this.modifierSystem.getRandomModifier(
+        this.state.level,
+        this.allowedModifiers,
+      );
       expectedInput = modifier.transform(word);
       const first = expectedInput[0].toLowerCase();
       const firstFree = !usedFirst.has(first);
