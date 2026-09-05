@@ -32,14 +32,14 @@ export class Game extends EventTarget {
     this.reportManager.addEventListener("reportCompleted", (e) =>
       this._onReportCompleted(e.detail),
     );
-    this.reportManager.addEventListener("reportExpired", () =>
-      this._onReportExpired(),
+    this.reportManager.addEventListener("reportExpired", (e) =>
+      this._onReportExpired(e.detail.report),
     );
-    this.distractionManager.addEventListener("distractionCleared", () =>
-      this._onDistractionCleared(),
+    this.distractionManager.addEventListener("distractionCleared", (e) =>
+      this._onDistractionCleared(e.detail.distraction),
     );
-    this.distractionManager.addEventListener("distractionMissed", () =>
-      this._onDistractionMissed(),
+    this.distractionManager.addEventListener("distractionMissed", (e) =>
+      this._onDistractionMissed(e.detail.distraction),
     );
   }
 
@@ -157,17 +157,29 @@ export class Game extends EventTarget {
 
   _onReportCompleted({ report, remainingRatio }) {
     const speedBonus = Math.round(GAME_CONFIG.speedBonusMax * remainingRatio);
-    const multiplier = comboMultiplier(this.state.combo);
-    this.state.score += (report.points + speedBonus) * multiplier;
+    const prevMultiplier = comboMultiplier(this.state.combo);
+    const gained = (report.points + speedBonus) * prevMultiplier;
+    this.state.score += gained;
     this.state.combo += 1;
+
+    const multiplier = comboMultiplier(this.state.combo);
+    if (multiplier > prevMultiplier) {
+      this.dispatchEvent(
+        new CustomEvent("comboUp", { detail: { multiplier } }),
+      );
+    }
+
     this._selectNextReport();
-    this.dispatchEvent(new CustomEvent("reportDone", { detail: { report } }));
+    this.dispatchEvent(
+      new CustomEvent("reportDone", { detail: { report, gained } }),
+    );
   }
 
-  _onReportExpired() {
+  _onReportExpired(report) {
     this.state.combo = 0;
     this._applyProductivityHit(GAME_CONFIG.penalties.reportExpired);
     this._selectNextReport();
+    this.dispatchEvent(new CustomEvent("reportLost", { detail: { report } }));
   }
 
   _onInputError() {
@@ -176,12 +188,22 @@ export class Game extends EventTarget {
     this.dispatchEvent(new CustomEvent("inputError"));
   }
 
-  _onDistractionCleared() {
+  _onDistractionCleared(distraction) {
     this.state.score += GAME_CONFIG.distractionClearPoints;
+    this.dispatchEvent(
+      new CustomEvent("distractionGone", {
+        detail: { distraction, cleared: true },
+      }),
+    );
   }
 
-  _onDistractionMissed() {
+  _onDistractionMissed(distraction) {
     this._applyProductivityHit(GAME_CONFIG.penalties.distractionMissed);
+    this.dispatchEvent(
+      new CustomEvent("distractionGone", {
+        detail: { distraction, cleared: false },
+      }),
+    );
   }
 
   _applyProductivityHit(amount) {

@@ -1,6 +1,7 @@
 import { GameStatus } from "../game/Game.js";
 import { GAME_CONFIG, comboMultiplier } from "../config.js";
 import { getModifier } from "../data/modifiers.js";
+import { Effects } from "./Effects.js";
 
 const CENTER = GAME_CONFIG.center;
 
@@ -16,9 +17,19 @@ export class GameUI {
     this._distractionEls = new Map();
     this._build();
 
+    this._prevStatus = null;
+
     this.game.addEventListener("change", (e) => this.render(e.detail));
-    this.game.addEventListener("inputError", () => this._shakeActive());
+    this.game.addEventListener("inputError", () => this._onInputError());
     this.game.addEventListener("hit", () => this._shakeScreen());
+    this.game.addEventListener("reportDone", (e) => this._onReportDone(e.detail));
+    this.game.addEventListener("reportLost", (e) => this._onReportLost(e.detail));
+    this.game.addEventListener("comboUp", (e) =>
+      this.effects.banner(`COMBO x${e.detail.multiplier}`),
+    );
+    this.game.addEventListener("distractionGone", (e) =>
+      this._onDistractionGone(e.detail),
+    );
 
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
@@ -70,6 +81,7 @@ export class GameUI {
           </div>
           <div class="reports" data-region="reports"></div>
           <div class="distractions" data-region="distractions"></div>
+          <div class="fx-layer" data-region="fx"></div>
         </div>
       </div>
 
@@ -91,10 +103,18 @@ export class GameUI {
       distractions: this.root.querySelector('[data-region="distractions"]'),
       overlay: this.root.querySelector('[data-region="overlay"]'),
       overlayPanel: this.root.querySelector('[data-region="overlay-panel"]'),
+      fx: this.root.querySelector('[data-region="fx"]'),
     };
+    this.effects = new Effects(this.els.fx);
   }
 
   render(state) {
+    // Limpia los efectos al empezar una partida nueva.
+    if (state.status === GameStatus.PLAYING && this._prevStatus !== GameStatus.PLAYING) {
+      this.effects.clear();
+    }
+    this._prevStatus = state.status;
+
     setText(this.els.score, state.score);
     setText(this.els.combo, `x${comboMultiplier(state.combo)}`);
     setText(this.els.level, state.level);
@@ -230,6 +250,43 @@ export class GameUI {
     el.classList.add("is-leaving");
     el.style.pointerEvents = "none";
     setTimeout(() => el.remove(), 220);
+  }
+
+  // --- Efectos (Fase 5) ---
+
+  // Posicion en % del reporte segun su avance, aunque ya no este en el estado.
+  _reportPos(report) {
+    const progress = clamp01(1 - report.remainingTime / report.timeLimit);
+    const posProgress = Math.min(progress, 0.94);
+    const tx = report.targetX ?? CENTER.x;
+    const ty = report.targetY ?? CENTER.y;
+    return {
+      x: lerp(report.spawnX, tx, posProgress) * 100,
+      y: lerp(report.spawnY, ty, posProgress) * 100,
+    };
+  }
+
+  _onReportDone({ report, gained }) {
+    const p = this._reportPos(report);
+    this.effects.burst(p.x, p.y, "good");
+    this.effects.floater(p.x, p.y, `+${gained}`, "good");
+  }
+
+  _onReportLost({ report }) {
+    const p = this._reportPos(report);
+    this.effects.burst(p.x, p.y, "expire", 7);
+  }
+
+  _onInputError() {
+    this._shakeActive();
+    const report = this.game.reportManager.getReport(this.game.state.activeReportId);
+    const p = report ? this._reportPos(report) : { x: CENTER.x * 100, y: CENTER.y * 100 };
+    this.effects.burst(p.x, p.y, "bad", 6);
+  }
+
+  _onDistractionGone({ distraction, cleared }) {
+    if (!cleared) return; // las ignoradas ya disparan screen shake via "hit"
+    this.effects.burst(distraction.x * 100, distraction.y * 100, "pop", 7);
   }
 
   _renderOverlay(state) {
