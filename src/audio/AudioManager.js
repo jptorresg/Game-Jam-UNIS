@@ -38,6 +38,7 @@ export class AudioManager {
     this._loops = new Map();
     this._loading = null;
     this._musicEl = null;
+    this._musicPrefetch = new Map(); // name -> Audio (precargado)
     this.currentMusic = null;
     this._fadeTimer = null;
   }
@@ -55,7 +56,21 @@ export class AudioManager {
     this.master.gain.value = 0.9;
     this.master.connect(this.ctx.destination);
     this._loading = this._loadAll();
+    this._prefetchMusic();
     return this._loading;
+  }
+
+  // Precarga todas las pistas para que el cambio (sobre todo a hora pico) sea
+  // instantaneo y no se pierda el arranque.
+  _prefetchMusic() {
+    for (const name of Object.keys(MUSIC_DEFS)) {
+      if (this._musicPrefetch.has(name)) continue;
+      const el = new Audio();
+      el.preload = "auto";
+      el.src = `/music/${name}.mp3`;
+      el.load();
+      this._musicPrefetch.set(name, el);
+    }
   }
 
   async _loadAll() {
@@ -134,6 +149,20 @@ export class AudioManager {
   }
 
   // ---------- Musica de fondo ----------
+  // Un elemento <audio> por pista (todas precargadas en init). Cambiar de pista
+  // = pausar la anterior y reproducir la nueva, que ya esta en cache -> arranca
+  // al instante, sin perder el principio.
+
+  _musicFor(name) {
+    let el = this._musicPrefetch.get(name);
+    if (!el) {
+      el = new Audio();
+      el.preload = "auto";
+      el.src = `/music/${name}.mp3`;
+      this._musicPrefetch.set(name, el);
+    }
+    return el;
+  }
 
   playMusic(name) {
     if (!this.musicEnabled) return;
@@ -141,63 +170,67 @@ export class AudioManager {
     if (!def) return;
 
     if (this.currentMusic === name) {
-      if (this._musicEl && this._musicEl.paused) this._musicEl.play().catch(() => {});
+      const same = this._musicFor(name);
+      if (same.paused) same.play().catch(() => {});
       return;
     }
+
+    const prev = this.currentMusic
+      ? this._musicPrefetch.get(this.currentMusic)
+      : null;
     this.currentMusic = name;
 
-    if (!this._musicEl) {
-      this._musicEl = new Audio();
-      this._musicEl.preload = "auto";
-    }
-    const el = this._musicEl;
+    if (prev && !prev.paused) this._fade(prev, 0, 180, true);
 
-    const swap = () => {
-      el.src = `/music/${name}.mp3`;
-      el.loop = !!def.loop;
-      el.volume = 0;
-      el
-        .play()
-        .then(() => this._fadeMusic(def.volume, 600))
-        .catch(() => {
-          this.currentMusic = null;
-        });
-    };
-
-    if (!el.paused && el.src) {
-      this._fadeMusic(0, 220);
-      setTimeout(swap, 230);
-    } else {
-      swap();
+    const el = this._musicFor(name);
+    el.loop = !!def.loop;
+    try {
+      el.currentTime = 0;
+    } catch {
+      /* aun sin metadata */
     }
+    el.volume = 0;
+    el
+      .play()
+      .then(() => this._fade(el, def.volume, 320))
+      .catch(() => {
+        this.currentMusic = null;
+      });
   }
 
   pauseMusic() {
-    if (this._musicEl) this._musicEl.pause();
+    const el = this.currentMusic && this._musicPrefetch.get(this.currentMusic);
+    if (el) el.pause();
   }
 
   stopMusic() {
+    const el = this.currentMusic && this._musicPrefetch.get(this.currentMusic);
+    if (el) el.pause();
     this.currentMusic = null;
-    if (this._musicEl) this._musicEl.pause();
   }
 
   setMusicEnabled(on) {
     this.musicEnabled = on;
-    if (!on) this.pauseMusic();
-    else if (this.currentMusic && this._musicEl) this._musicEl.play().catch(() => {});
+    const el = this.currentMusic && this._musicPrefetch.get(this.currentMusic);
+    if (!el) return;
+    if (!on) el.pause();
+    else el.play().catch(() => {});
   }
 
-  _fadeMusic(target, ms) {
-    if (!this._musicEl) return;
-    clearInterval(this._fadeTimer);
-    const el = this._musicEl;
-    const steps = 14;
+  _fade(el, target, ms, thenPause = false) {
+    if (!el) return;
+    if (el._fadeTimer) clearInterval(el._fadeTimer);
+    const steps = 12;
     const start = el.volume;
     let i = 0;
-    this._fadeTimer = setInterval(() => {
+    el._fadeTimer = setInterval(() => {
       i++;
       el.volume = Math.max(0, Math.min(1, start + (target - start) * (i / steps)));
-      if (i >= steps) clearInterval(this._fadeTimer);
+      if (i >= steps) {
+        clearInterval(el._fadeTimer);
+        el._fadeTimer = null;
+        if (thenPause) el.pause();
+      }
     }, ms / steps);
   }
 }
