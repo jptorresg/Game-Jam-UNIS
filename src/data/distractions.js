@@ -14,7 +14,7 @@ export const DISTRACTION_TYPES = {
   fly: {
     lifetime: 10,
     speed: 46,
-    glyph: "\u{1FAB0}",
+    img: "/images/distracciones/mosca.png",
     label: "",
     tone: "bug",
     effect: "blur",
@@ -23,7 +23,7 @@ export const DISTRACTION_TYPES = {
   coworker: {
     lifetime: 14,
     speed: 24,
-    glyph: "\u{1F9D1}",
+    img: "/images/distracciones/companero.png",
     label: "¿Tienes un momento?",
     tone: "person",
     effect: "blur",
@@ -32,8 +32,7 @@ export const DISTRACTION_TYPES = {
   meeting: {
     lifetime: 15,
     speed: 18,
-    glyph: "",
-    img: "/images/reunion/reunion.png", // arte del equipo
+    img: "/images/reunion/reunion.png",
     label: "REUNION",
     tone: "meeting",
     effect: "blur",
@@ -42,7 +41,7 @@ export const DISTRACTION_TYPES = {
   phone: {
     lifetime: 11,
     speed: 28,
-    glyph: "\u{1F4DE}",
+    img: "/images/distracciones/telefono.png",
     label: "RING RING",
     tone: "phone",
     effect: "black",
@@ -51,7 +50,7 @@ export const DISTRACTION_TYPES = {
   coffee: {
     lifetime: 12,
     speed: 26,
-    glyph: "\u{2615}",
+    img: "/images/distracciones/cafe.png",
     label: "¿Un cafecito?",
     tone: "coffee",
     effect: "blur",
@@ -60,7 +59,7 @@ export const DISTRACTION_TYPES = {
   notification: {
     lifetime: 9,
     speed: 22,
-    glyph: "\u{1F514}",
+    img: "/images/distracciones/notificacion.png",
     label: "Nueva notificacion",
     tone: "notif",
     effect: "black",
@@ -69,7 +68,7 @@ export const DISTRACTION_TYPES = {
   boss: {
     lifetime: 16,
     speed: 20,
-    glyph: "\u{1F454}",
+    img: "/images/distracciones/jefe.png",
     label: "EL JEFE",
     tone: "boss",
     effect: "black",
@@ -78,8 +77,8 @@ export const DISTRACTION_TYPES = {
   popup: {
     lifetime: 13,
     speed: 15,
-    glyph: "\u{26A0}\u{FE0F}",
-    label: "SYSTEM MESSAGE",
+    img: "/images/distracciones/popup.png",
+    label: "",
     tone: "popup",
     effect: "black",
     effectMs: 950,

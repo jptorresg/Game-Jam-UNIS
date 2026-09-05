@@ -110,7 +110,6 @@ export class DistractionManager extends EventTarget {
     const distraction = {
       id: `distraction-${String(this._nextId++).padStart(3, "0")}`,
       type,
-      glyph: def.glyph,
       img: def.img || null,
       label: def.label,
       tone: def.tone,

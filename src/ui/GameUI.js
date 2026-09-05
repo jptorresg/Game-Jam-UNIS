@@ -353,23 +353,10 @@ export class GameUI {
       `distraction--${distraction.tone} distraction--enter`;
     el.dataset.distractionId = distraction.id;
 
-    if (distraction.type === "popup") {
-      el.innerHTML = `
-        <div class="popup__bar">${distraction.label}<span class="popup__x">x</span></div>
-        <div class="popup__body">
-          <span class="distraction__glyph">${distraction.glyph}</span>
-          Actualizacion requerida
-          <button class="popup__ok">OK</button>
-        </div>`;
-    } else {
-      const label = distraction.label
-        ? `<span class="distraction__label">${distraction.label}</span>`
-        : "";
-      const visual = distraction.img
-        ? `<img class="distraction__art" src="${distraction.img}" alt="" />`
-        : `<span class="distraction__glyph">${distraction.glyph}</span>`;
-      el.innerHTML = `${visual}${label}`;
-    }
+    const label = distraction.label
+      ? `<span class="distraction__label">${distraction.label}</span>`
+      : "";
+    el.innerHTML = `<img class="distraction__art" src="${distraction.img}" alt="" />${label}`;
 
     const clear = (e) => {
       e.stopPropagation();

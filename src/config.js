@@ -15,7 +15,7 @@ export const GAME_CONFIG = {
   // El "tiempo" de un reporte es lo que tarda en llegar al centro desde el borde.
   // Mas alto = llega mas lento = mas margen para escribirlo.
   initialReportTime: 10,
-  minReportTime: 5,
+  minReportTime: 3.8,
 
   // --- Puntuacion ---
   baseReportPoints: 100,
@@ -35,14 +35,14 @@ export const GAME_CONFIG = {
   // El nivel efectivo ahora viene de la jornada: (turno - 1) * 4 + horas
   // transcurridas del turno. Estas pendientes controlan cuanto endurece.
   secondsPerLevel: 25, // (sin uso: la dificultad la marca el reloj)
-  spawnIntervalPerLevel: 0.16, // cuanto baja el intervalo de spawn por nivel
-  reportTimePerLevel: 0.42, // cuanto baja el tiempo de reporte por nivel
+  spawnIntervalPerLevel: 0.24, // cuanto baja el intervalo de spawn por nivel
+  reportTimePerLevel: 0.6, // cuanto baja el tiempo de reporte por nivel (llegan mas rapido)
 
   // --- Jornada / turnos ---
   schedule: {
     startHour: 9,
     endHour: 17,
-    secondsPerHour: 20, // 1 hora del juego = 20 s reales -> turno = ~2:40 min
+    secondsPerHour: 10, // 1 hora del juego = 10 s reales -> turno = ~1:20 min
     // Fases por hora. `from` es la hora a la que arranca la fase.
     phases: [
       {
@@ -109,8 +109,8 @@ export const GAME_CONFIG = {
   // Roam lento por la oficina; al tocar al personaje aplican un efecto de
   // pantalla (blur / negro) en vez de restar productividad.
   initialDistractionInterval: 5.5,
-  minDistractionInterval: 2.2,
-  distractionIntervalPerLevel: 0.3,
+  minDistractionInterval: 2,
+  distractionIntervalPerLevel: 0.42,
   maxActiveDistractions: 4,
   firstDistractionLevel: 2, // no aparecen distracciones antes de este nivel
 

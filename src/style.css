@@ -640,7 +640,7 @@ body {
   animation: report-shake 0.16s ease-in-out 2;
 }
 
-/* ---------- Distracciones ---------- */
+/* ---------- Distracciones (sprites del equipo) ---------- */
 .distraction {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -648,15 +648,9 @@ body {
   cursor: pointer;
   user-select: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border: 3px solid var(--line);
-  box-shadow: var(--pixel-shadow);
-  font-size: 10px;
-  font-weight: bold;
-  white-space: nowrap;
-  color: #fff;
+  gap: 2px;
   transition: opacity 0.18s, transform 0.18s;
   z-index: 7;
 }
@@ -668,29 +662,35 @@ body {
   transform: translate(-50%, -50%) scale(1.7) rotate(8deg);
 }
 
-.distraction__glyph {
-  font-size: 17px;
-  line-height: 1;
-  image-rendering: pixelated;
-}
-
 .distraction__art {
-  height: 40px;
+  height: 48px;
   width: auto;
   image-rendering: pixelated;
   pointer-events: none;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.4));
 }
 
-.distraction--meeting {
-  background: #4a3a2a;
-  border-color: var(--line);
+.distraction__label {
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  padding: 1px 5px;
+  white-space: nowrap;
 }
+
+/* Tamanos por tipo */
+.distraction--bug .distraction__art { height: 28px; }
+.distraction--person .distraction__art { height: 62px; }
+.distraction--boss .distraction__art { height: 74px; }
+.distraction--phone .distraction__art { height: 52px; }
+.distraction--coffee .distraction__art { height: 50px; }
+.distraction--notif .distraction__art { height: 44px; }
+.distraction--meeting .distraction__art { height: 54px; }
+.distraction--popup .distraction__art { height: 104px; }
 
 .distraction--bug {
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  background: transparent;
   animation: fly-buzz 0.3s linear infinite alternate;
 }
 
@@ -699,49 +699,9 @@ body {
   to { margin: 3px 0 0 2px; }
 }
 
-.distraction--notif { background: #2f3a4f; border-left: 5px solid var(--accent); }
-.distraction--person { background: #5a63c8; }
-.distraction--phone { background: #c85a5a; }
-.distraction--coffee { background: #7a5230; }
-.distraction--boss { background: #1f1f1f; border-color: var(--danger); font-size: 11px; }
-
-.distraction--popup {
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  width: 150px;
-  background: #d9d9de;
-  color: #222;
-  white-space: normal;
-  font-weight: normal;
-}
-
-.popup__bar {
-  width: 100%;
-  background: var(--mod-blue);
+.distraction--boss .distraction__label {
+  background: var(--danger);
   color: #fff;
-  font-weight: bold;
-  padding: 4px 6px;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 3px solid var(--line);
-}
-
-.popup__body {
-  padding: 10px 8px;
-  text-align: center;
-}
-
-.popup__ok {
-  display: block;
-  margin: 8px auto 0;
-  padding: 3px 16px;
-  font-family: var(--font);
-  font-size: 11px;
-  font-weight: bold;
-  border: 2px solid var(--line);
-  background: #f2f2f4;
-  cursor: pointer;
 }
 
 /* ---------- Efectos efimeros ---------- */
