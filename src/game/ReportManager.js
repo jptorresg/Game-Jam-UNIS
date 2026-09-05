@@ -2,6 +2,9 @@ import { GAME_CONFIG } from "../config.js";
 import { randomWord } from "../data/words.js";
 import { randomEdgePoint, centerTarget } from "./spawn.js";
 
+// Familias de arte para las carpetas (imagenes del equipo).
+export const REPORT_ART = ["reporte", "documento", "ticket"];
+
 // Responsable de: crear reportes, asignar palabras y modificadores, calcular la
 // respuesta esperada, controlar el avance hacia el centro y completar / expirar.
 // No renderiza HTML ni toca la puntuacion: emite eventos para que Game reaccione.
@@ -105,6 +108,7 @@ export class ReportManager extends EventTarget {
       remainingTime: this.reportTime,
       status: "pending",
       points: GAME_CONFIG.baseReportPoints,
+      artFamily: REPORT_ART[Math.floor(Math.random() * REPORT_ART.length)],
       spawnX: origin.x,
       spawnY: origin.y,
       targetX: target.x,

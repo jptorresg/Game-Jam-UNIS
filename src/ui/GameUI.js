@@ -33,14 +33,23 @@ const DIR_BY_INDEX = {
   "-1": "northeast",
 };
 
+// Sufijo de color de la imagen de la carpeta segun el modificador.
+const ART_COLOR_SUFFIX = {
+  none: "",
+  uppercase: "-rojo",
+  reverse: "-azul",
+  vowelShift: "-verde",
+};
+
 // Refleja el estado del juego en el DOM. Mantiene mapas id -> elemento para
 // reportes y distracciones y solo actualiza posiciones / textos que cambian.
 // Reportes y distracciones se posicionan de forma absoluta y avanzan hacia el
 // centro (donde esta el personaje).
 export class GameUI {
-  constructor(game, root) {
+  constructor(game, root, audio = null) {
     this.game = game;
     this.root = root;
+    this.audio = audio || { play() {}, startLoop() {}, stopLoop() {}, stopAllLoops() {} };
     this._reportEls = new Map();
     this._distractionEls = new Map();
     this._build();
@@ -48,12 +57,17 @@ export class GameUI {
     this._prevStatus = null;
 
     this.game.addEventListener("change", (e) => this.render(e.detail));
+    this.game.addEventListener("keyHit", () => this.audio.play("keypress"));
     this.game.addEventListener("inputError", () => this._onInputError());
     this.game.addEventListener("hit", () => this._shakeScreen());
     this.game.addEventListener("reportDone", (e) => this._onReportDone(e.detail));
     this.game.addEventListener("reportLost", (e) => this._onReportLost(e.detail));
-    this.game.addEventListener("comboUp", (e) =>
-      this.effects.banner(`COMBO x${e.detail.multiplier}`),
+    this.game.addEventListener("comboUp", (e) => {
+      this.effects.banner(`COMBO x${e.detail.multiplier}`);
+      this.audio.play("combo");
+    });
+    this.game.addEventListener("distractionSpawned", (e) =>
+      this._onDistractionSpawned(e.detail.distraction),
     );
     this.game.addEventListener("distractionGone", (e) =>
       this._onDistractionGone(e.detail),
@@ -177,6 +191,18 @@ export class GameUI {
       this.effects.clear();
       this._clearScreenEffects();
     }
+    if (state.status !== this._prevStatus) {
+      if (state.status === GameStatus.GAME_OVER) {
+        this.audio.stopAllLoops();
+        this.audio.play("gameover");
+      } else if (
+        state.status === GameStatus.BREAK ||
+        state.status === GameStatus.PAUSED ||
+        state.status === GameStatus.MENU
+      ) {
+        this.audio.stopAllLoops();
+      }
+    }
     this._prevStatus = state.status;
 
     setText(this.els.score, state.score);
@@ -278,18 +304,22 @@ export class GameUI {
     el.dataset.reportId = report.id;
     el.style.setProperty("--scale", "0.82");
 
-    const banner =
+    const fam = report.artFamily || "reporte";
+    const suffix = ART_COLOR_SUFFIX[report.modifier] ?? "";
+    const artSrc = `/images/${fam}/${fam}${suffix}.png`;
+
+    // Para los modificadores, se muestra la palabra original arriba (lo que hay
+    // que transformar); la caja de abajo muestra lo que se escribe de verdad.
+    const wordLine =
       modifier.id === "none"
-        ? `<div class="report__tag">${report.id.toUpperCase()}</div>`
-        : `<div class="report__banner">${modifier.label}</div>`;
+        ? ""
+        : `<div class="report__word">${report.word}</div>`;
 
     el.innerHTML = `
-      ${banner}
-      <div class="report__body">
-        <div class="report__word">${report.word}</div>
-        <div class="report__input">
-          <span class="report__typed"></span><span class="report__rest"></span>
-        </div>
+      ${wordLine}
+      <img class="report__art" src="${artSrc}" alt="" />
+      <div class="report__input">
+        <span class="report__typed"></span><span class="report__rest"></span>
       </div>
       <div class="report__timerbar"><div class="report__timerbar-fill"></div></div>
     `;
@@ -335,7 +365,10 @@ export class GameUI {
       const label = distraction.label
         ? `<span class="distraction__label">${distraction.label}</span>`
         : "";
-      el.innerHTML = `<span class="distraction__glyph">${distraction.glyph}</span>${label}`;
+      const visual = distraction.img
+        ? `<img class="distraction__art" src="${distraction.img}" alt="" />`
+        : `<span class="distraction__glyph">${distraction.glyph}</span>`;
+      el.innerHTML = `${visual}${label}`;
     }
 
     const clear = (e) => {
@@ -372,24 +405,37 @@ export class GameUI {
   _onReportDone({ report, gained }) {
     const p = this._reportPos(report);
     this.effects.burst(p.x, p.y, "good");
-    this.effects.floater(p.x, p.y, `+${gained}`, "good");
+    this.audio.play("correct");
+    if (gained > 0) {
+      this.effects.floater(p.x, p.y, `+${gained}`, "good");
+      this.audio.play("fireball");
+    }
   }
 
   _onReportLost({ report }) {
     const p = this._reportPos(report);
     this.effects.burst(p.x, p.y, "expire", 7);
+    this.audio.play("expired");
   }
 
   _onInputError() {
     this._shakeActive();
+    this.audio.play("error");
     const report = this.game.reportManager.getReport(this.game.state.activeReportId);
     const p = report ? this._reportPos(report) : { x: CENTER.x * 100, y: CENTER.y * 100 };
     this.effects.burst(p.x, p.y, "bad", 6);
   }
 
+  _onDistractionSpawned(distraction) {
+    if (distraction.type === "fly") this.audio.startLoop(distraction.id, "fly");
+    else if (distraction.type === "popup") this.audio.startLoop(distraction.id, "popup");
+  }
+
   _onDistractionGone({ distraction, cleared }) {
+    this.audio.stopLoop(distraction.id);
     if (!cleared) return; // las que se van solas no dejan efecto
     this.effects.burst(distraction.x * 100, distraction.y * 100, "pop", 7);
+    this.audio.play("distractionClear");
   }
 
   // Efecto de pantalla cuando una distraccion toca al personaje.

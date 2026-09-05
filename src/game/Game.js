@@ -1,6 +1,6 @@
 import { GAME_CONFIG, comboMultiplier } from "../config.js";
 import { randomWord } from "../data/words.js";
-import { ReportManager } from "./ReportManager.js";
+import { ReportManager, REPORT_ART } from "./ReportManager.js";
 import { ModifierSystem } from "./ModifierSystem.js";
 import { DifficultySystem } from "./DifficultySystem.js";
 import { DistractionManager } from "./DistractionManager.js";
@@ -48,6 +48,11 @@ export class Game extends EventTarget {
     );
     this.reportManager.addEventListener("reportExpired", (e) =>
       this._onReportExpired(e.detail.report),
+    );
+    this.distractionManager.addEventListener("distractionSpawned", (e) =>
+      this.dispatchEvent(
+        new CustomEvent("distractionSpawned", { detail: e.detail }),
+      ),
     );
     this.distractionManager.addEventListener("distractionCleared", (e) =>
       this._onDistractionCleared(e.detail.distraction),
@@ -283,6 +288,7 @@ export class Game extends EventTarget {
       remainingTime: 1,
       status: "pending",
       points: 0,
+      artFamily: REPORT_ART[slot % REPORT_ART.length],
       spawnX: pos.x,
       spawnY: pos.y,
       targetX: pos.x,
@@ -349,6 +355,8 @@ export class Game extends EventTarget {
       if (nextInput === report.expectedInput) {
         this.reportManager.completeReport(report.id);
         this.state.currentInput = "";
+      } else {
+        this.dispatchEvent(new CustomEvent("keyHit"));
       }
     } else if (!report.tutorial) {
       this._onInputError();

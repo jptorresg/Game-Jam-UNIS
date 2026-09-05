@@ -29,6 +29,16 @@ export const DISTRACTION_TYPES = {
     effect: "blur",
     effectMs: 1300,
   },
+  meeting: {
+    lifetime: 15,
+    speed: 18,
+    glyph: "",
+    img: "/images/reunion/reunion.png", // arte del equipo
+    label: "REUNION",
+    tone: "meeting",
+    effect: "blur",
+    effectMs: 1400,
+  },
   phone: {
     lifetime: 11,
     speed: 28,
@@ -81,8 +91,8 @@ export const DISTRACTION_IDS = Object.keys(DISTRACTION_TYPES);
 // La variedad crece con el nivel.
 export function randomDistractionType(level = 1) {
   const pool = ["fly", "fly", "notification"];
-  if (level >= 2) pool.push("coworker", "coffee");
+  if (level >= 2) pool.push("coworker", "coffee", "meeting");
   if (level >= 3) pool.push("phone", "popup");
-  if (level >= 4) pool.push("boss", "coworker", "phone");
+  if (level >= 4) pool.push("boss", "coworker", "phone", "meeting");
   return pool[Math.floor(Math.random() * pool.length)];
 }
