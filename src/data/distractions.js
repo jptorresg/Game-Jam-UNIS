@@ -1,60 +1,78 @@
-// Tipos de distraccion. Aparecen en un borde y se mueven hacia el centro; si
-// llegan (o se acaba su lifetime) cuentan como ignoradas.
+// Tipos de distraccion. Aparecen en un borde y luego ROAM: se mueven despacio y
+// rebotan por la oficina intentando molestar. Si tocan al personaje disparan un
+// efecto de pantalla (no restan productividad); solo se van con click o cuando
+// se agota su lifetime.
 //
-// lifetime : segundos de vida como respaldo (normalmente llega antes al centro)
-// speed    : px/segundo aproximados hacia el centro (0 = casi fija)
+// lifetime : segundos que aguanta antes de rendirse e irse sola
+// speed    : px/segundo aproximados (lento; rebota, no persigue)
 // glyph    : placeholder visual hasta tener sprites pixel
 // label    : texto que acompana al placeholder
 // tone     : color del placeholder (clase distraction--<tone>)
+// effect   : "blur" (nubla la vista) o "black" (pantallazo oscuro)
+// effectMs : cuanto dura el efecto al tocar al personaje
 export const DISTRACTION_TYPES = {
   fly: {
-    lifetime: 6,
-    speed: 130,
+    lifetime: 10,
+    speed: 46,
     glyph: "\u{1FAB0}",
     label: "",
     tone: "bug",
+    effect: "blur",
+    effectMs: 850,
   },
   coworker: {
-    lifetime: 8,
-    speed: 70,
+    lifetime: 14,
+    speed: 24,
     glyph: "\u{1F9D1}",
     label: "¿Tienes un momento?",
     tone: "person",
+    effect: "blur",
+    effectMs: 1300,
   },
   phone: {
-    lifetime: 7,
-    speed: 55,
+    lifetime: 11,
+    speed: 28,
     glyph: "\u{1F4DE}",
     label: "RING RING",
     tone: "phone",
+    effect: "black",
+    effectMs: 650,
   },
   coffee: {
-    lifetime: 7,
-    speed: 60,
+    lifetime: 12,
+    speed: 26,
     glyph: "\u{2615}",
     label: "¿Un cafecito?",
     tone: "coffee",
-  },
-  boss: {
-    lifetime: 9,
-    speed: 45,
-    glyph: "\u{1F454}",
-    label: "EL JEFE",
-    tone: "boss",
+    effect: "blur",
+    effectMs: 1100,
   },
   notification: {
-    lifetime: 6,
-    speed: 40,
+    lifetime: 9,
+    speed: 22,
     glyph: "\u{1F514}",
     label: "Nueva notificacion",
     tone: "notif",
+    effect: "black",
+    effectMs: 500,
+  },
+  boss: {
+    lifetime: 16,
+    speed: 20,
+    glyph: "\u{1F454}",
+    label: "EL JEFE",
+    tone: "boss",
+    effect: "black",
+    effectMs: 1700,
   },
   popup: {
-    lifetime: 8,
-    speed: 0,
+    lifetime: 13,
+    speed: 15,
     glyph: "\u{26A0}\u{FE0F}",
     label: "SYSTEM MESSAGE",
     tone: "popup",
+    effect: "black",
+    effectMs: 950,
   },
 };
 

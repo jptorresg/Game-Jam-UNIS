@@ -37,17 +37,18 @@ export const GAME_CONFIG = {
   reportTimePerLevel: 0.42, // cuanto baja el tiempo de reporte por nivel
 
   // --- Distracciones ---
-  initialDistractionInterval: 4.5,
-  minDistractionInterval: 1.4,
-  distractionIntervalPerLevel: 0.35,
-  maxActiveDistractions: 5,
+  // Roam lento por la oficina; al tocar al personaje aplican un efecto de
+  // pantalla (blur / negro) en vez de restar productividad.
+  initialDistractionInterval: 5.5,
+  minDistractionInterval: 2.2,
+  distractionIntervalPerLevel: 0.3,
+  maxActiveDistractions: 4,
   firstDistractionLevel: 2, // no aparecen distracciones antes de este nivel
 
   // --- Penalizaciones a la productividad ---
   penalties: {
     reportExpired: 10,
     inputError: 5,
-    distractionMissed: 5,
   },
 };
 

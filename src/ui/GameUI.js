@@ -30,6 +30,7 @@ export class GameUI {
     this.game.addEventListener("distractionGone", (e) =>
       this._onDistractionGone(e.detail),
     );
+    this.game.addEventListener("screenEffect", (e) => this._screenEffect(e.detail));
 
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
@@ -83,6 +84,8 @@ export class GameUI {
           <div class="distractions" data-region="distractions"></div>
           <div class="fx-layer" data-region="fx"></div>
         </div>
+
+        <div class="screenblack" data-region="screenblack" hidden></div>
       </div>
 
       <div class="overlay" data-region="overlay" hidden>
@@ -104,14 +107,18 @@ export class GameUI {
       overlay: this.root.querySelector('[data-region="overlay"]'),
       overlayPanel: this.root.querySelector('[data-region="overlay-panel"]'),
       fx: this.root.querySelector('[data-region="fx"]'),
+      screenblack: this.root.querySelector('[data-region="screenblack"]'),
     };
     this.effects = new Effects(this.els.fx);
+    this._blurTimer = null;
+    this._blackTimer = null;
   }
 
   render(state) {
     // Limpia los efectos al empezar una partida nueva.
     if (state.status === GameStatus.PLAYING && this._prevStatus !== GameStatus.PLAYING) {
       this.effects.clear();
+      this._clearScreenEffects();
     }
     this._prevStatus = state.status;
 
@@ -291,8 +298,32 @@ export class GameUI {
   }
 
   _onDistractionGone({ distraction, cleared }) {
-    if (!cleared) return; // las ignoradas ya disparan screen shake via "hit"
+    if (!cleared) return; // las que se van solas no dejan efecto
     this.effects.burst(distraction.x * 100, distraction.y * 100, "pop", 7);
+  }
+
+  // Efecto de pantalla cuando una distraccion toca al personaje.
+  _screenEffect({ effect, ms }) {
+    if (effect === "black") {
+      this.els.screenblack.hidden = false;
+      clearTimeout(this._blackTimer);
+      this._blackTimer = setTimeout(() => {
+        this.els.screenblack.hidden = true;
+      }, ms);
+    } else {
+      this.els.office.classList.add("office--blur");
+      clearTimeout(this._blurTimer);
+      this._blurTimer = setTimeout(() => {
+        this.els.office.classList.remove("office--blur");
+      }, ms);
+    }
+  }
+
+  _clearScreenEffects() {
+    clearTimeout(this._blurTimer);
+    clearTimeout(this._blackTimer);
+    this.els.office.classList.remove("office--blur");
+    this.els.screenblack.hidden = true;
   }
 
   _renderOverlay(state) {

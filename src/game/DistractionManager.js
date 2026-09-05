@@ -1,11 +1,15 @@
 import { GAME_CONFIG } from "../config.js";
 import { DISTRACTION_TYPES, randomDistractionType } from "../data/distractions.js";
-import { randomEdgePoint, centerTarget, directionTo } from "./spawn.js";
+import { randomEdgePoint } from "./spawn.js";
 
-// Logica de distracciones. Coordenadas normalizadas (0..1): aparecen en un borde
-// y avanzan hacia el centro (donde esta el personaje). Si llegan al centro o se
-// agota su lifetime cuentan como ignoradas. No toca puntuacion ni productividad:
-// emite eventos para que Game aplique la consecuencia.
+// Logica de distracciones. Coordenadas normalizadas (0..1). Aparecen en un borde
+// y luego se mueven despacio rebotando por la oficina. Si tocan al personaje
+// disparan un efecto de pantalla (evento "distractionHit"); no restan
+// productividad. Se van con click o cuando se agota su lifetime.
+const BOUNDS = { minX: 0.04, maxX: 0.95, minY: 0.04, maxY: 0.9 };
+const HIT_RADIUS = 0.1;
+const HIT_COOLDOWN = 2; // segundos entre efectos de una misma distraccion
+
 export class DistractionManager extends EventTarget {
   constructor(state) {
     super();
@@ -26,19 +30,50 @@ export class DistractionManager extends EventTarget {
   }
 
   update(deltaTime) {
+    const center = GAME_CONFIG.center;
+
     for (const d of this.state.distractions) {
       d.remaining -= deltaTime;
+      if (d.cooldown > 0) d.cooldown -= deltaTime;
+
       d.x += d.vx * deltaTime;
       d.y += d.vy * deltaTime;
 
-      // Las fijas (popup) solo se pierden por lifetime; las que viajan, tambien
-      // al alcanzar al personaje.
-      const moving = d.vx !== 0 || d.vy !== 0;
-      const reached =
-        moving && Math.hypot(d.targetX - d.x, d.targetY - d.y) < 0.04;
-      if (reached || d.remaining <= 0) {
-        this._miss(d);
+      // Rebote en los bordes del area de juego.
+      if (d.x < BOUNDS.minX) {
+        d.x = BOUNDS.minX;
+        d.vx = Math.abs(d.vx);
+      } else if (d.x > BOUNDS.maxX) {
+        d.x = BOUNDS.maxX;
+        d.vx = -Math.abs(d.vx);
       }
+      if (d.y < BOUNDS.minY) {
+        d.y = BOUNDS.minY;
+        d.vy = Math.abs(d.vy);
+      } else if (d.y > BOUNDS.maxY) {
+        d.y = BOUNDS.maxY;
+        d.vy = -Math.abs(d.vy);
+      }
+
+      // Choque con el personaje: efecto de pantalla + rebote, con enfriamiento.
+      const dist = Math.hypot(center.x - d.x, center.y - d.y);
+      if (dist < HIT_RADIUS && d.cooldown <= 0) {
+        d.cooldown = HIT_COOLDOWN;
+        const nx = (d.x - center.x) / (dist || 1);
+        const ny = (d.y - center.y) / (dist || 1);
+        const speed = Math.hypot(d.vx, d.vy) || 0.05;
+        d.vx = nx * speed;
+        d.vy = ny * speed;
+        d.x = center.x + nx * (HIT_RADIUS + 0.02);
+        d.y = center.y + ny * (HIT_RADIUS + 0.02);
+        this.dispatchEvent(
+          new CustomEvent("distractionHit", {
+            detail: { distraction: d, effect: d.effect, ms: d.effectMs },
+          }),
+        );
+      }
+
+      if (d.remaining <= 0) this._expire(d);
     }
 
     if (!this.enabled) return;
@@ -68,17 +103,9 @@ export class DistractionManager extends EventTarget {
   _spawn() {
     const type = randomDistractionType(this.state.level);
     const def = DISTRACTION_TYPES[type];
-    const center = GAME_CONFIG.center;
-    const target = centerTarget(0.1);
-
-    // El popup no viaja: aparece cerca del centro y bloquea.
-    const origin =
-      def.speed === 0
-        ? { x: center.x + (Math.random() - 0.5) * 0.32, y: center.y - 0.3 }
-        : randomEdgePoint();
-
-    const dir = directionTo(origin, target);
-    const normalizedSpeed = def.speed / 520; // px/s -> fraccion del area por segundo
+    const origin = randomEdgePoint();
+    const angle = Math.random() * Math.PI * 2;
+    const speed = def.speed / 520; // px/s -> fraccion del area por segundo
 
     const distraction = {
       id: `distraction-${String(this._nextId++).padStart(3, "0")}`,
@@ -86,14 +113,15 @@ export class DistractionManager extends EventTarget {
       glyph: def.glyph,
       label: def.label,
       tone: def.tone,
+      effect: def.effect,
+      effectMs: def.effectMs,
       x: origin.x,
       y: origin.y,
-      targetX: def.speed === 0 ? origin.x : target.x,
-      targetY: def.speed === 0 ? origin.y - 0.001 : target.y,
-      vx: dir.x * normalizedSpeed,
-      vy: dir.y * normalizedSpeed,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
       lifetime: def.lifetime,
       remaining: def.lifetime,
+      cooldown: 1, // no golpea justo al aparecer
     };
     this.state.distractions.push(distraction);
     this.dispatchEvent(
@@ -101,12 +129,12 @@ export class DistractionManager extends EventTarget {
     );
   }
 
-  _miss(distraction) {
+  _expire(distraction) {
     const index = this.state.distractions.indexOf(distraction);
-    if (index === -1) return; // ya fue quitada este frame
+    if (index === -1) return;
     this.state.distractions.splice(index, 1);
     this.dispatchEvent(
-      new CustomEvent("distractionMissed", { detail: { distraction } }),
+      new CustomEvent("distractionExpired", { detail: { distraction } }),
     );
   }
 }

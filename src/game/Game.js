@@ -38,8 +38,11 @@ export class Game extends EventTarget {
     this.distractionManager.addEventListener("distractionCleared", (e) =>
       this._onDistractionCleared(e.detail.distraction),
     );
-    this.distractionManager.addEventListener("distractionMissed", (e) =>
-      this._onDistractionMissed(e.detail.distraction),
+    this.distractionManager.addEventListener("distractionExpired", (e) =>
+      this._onDistractionExpired(e.detail.distraction),
+    );
+    this.distractionManager.addEventListener("distractionHit", (e) =>
+      this._onDistractionHit(e.detail),
     );
   }
 
@@ -224,12 +227,19 @@ export class Game extends EventTarget {
     );
   }
 
-  _onDistractionMissed(distraction) {
-    this._applyProductivityHit(GAME_CONFIG.penalties.distractionMissed);
+  // La distraccion se rindio y se fue sola: sin penalizacion, solo limpieza de UI.
+  _onDistractionExpired(distraction) {
     this.dispatchEvent(
       new CustomEvent("distractionGone", {
         detail: { distraction, cleared: false },
       }),
+    );
+  }
+
+  // La distraccion toco al personaje: efecto de pantalla (no toca la productividad).
+  _onDistractionHit({ effect, ms }) {
+    this.dispatchEvent(
+      new CustomEvent("screenEffect", { detail: { effect, ms } }),
     );
   }
 
