@@ -5,6 +5,34 @@ import { Effects } from "./Effects.js";
 
 const CENTER = GAME_CONFIG.center;
 
+// Sprites del personaje. En reposo alterna standing/bored; mientras se escribe
+// una palabra se elige la direccion (8 rumbos) hacia el reporte activo.
+const CHAR_POSES = [
+  "standing",
+  "bored",
+  "north",
+  "northeast",
+  "east",
+  "southeast",
+  "south",
+  "southwest",
+  "west",
+  "northwest",
+];
+
+// atan2(dy, dx) / (PI/4) redondeado -> rumbo (coordenadas de pantalla, y hacia abajo).
+const DIR_BY_INDEX = {
+  "0": "east",
+  "1": "southeast",
+  "2": "south",
+  "3": "southwest",
+  "4": "west",
+  "-4": "west",
+  "-3": "northwest",
+  "-2": "north",
+  "-1": "northeast",
+};
+
 // Refleja el estado del juego en el DOM. Mantiene mapas id -> elemento para
 // reportes y distracciones y solo actualiza posiciones / textos que cambian.
 // Reportes y distracciones se posicionan de forma absoluta y avanzan hacia el
@@ -76,14 +104,7 @@ export class GameUI {
 
         <div class="stage" data-region="stage">
           <div class="character" data-region="character" aria-hidden="true">
-            <div class="character__sprite">
-              <div class="px px--hair"></div>
-              <div class="px px--face"></div>
-              <div class="px px--body"></div>
-              <div class="px px--armL"></div>
-              <div class="px px--armR"></div>
-            </div>
-            <div class="character__desk"></div>
+            <img class="character__img" data-region="charimg" alt="" />
             <div class="character__shadow"></div>
           </div>
           <div class="reports" data-region="reports"></div>
@@ -121,10 +142,28 @@ export class GameUI {
       tutTitle: this.root.querySelector('[data-tut="title"]'),
       tutDesc: this.root.querySelector('[data-tut="desc"]'),
       tutCount: this.root.querySelector('[data-tut="count"]'),
+      charImg: this.root.querySelector('[data-region="charimg"]'),
     };
     this.effects = new Effects(this.els.fx);
     this._blurTimer = null;
     this._blackTimer = null;
+
+    // Precargar los sprites del personaje y arrancar la rotacion de reposo.
+    this._charSprites = {};
+    for (const name of CHAR_POSES) {
+      const src = `/images/character/${name}.png`;
+      this._charSprites[name] = src;
+      const img = new Image();
+      img.src = src;
+    }
+    this._idlePose = "standing";
+    this.els.charImg.src = this._charSprites.standing;
+    this._idleTimer = setInterval(() => {
+      this._idlePose = this._idlePose === "standing" ? "bored" : "standing";
+      if (this.game.state.activeReportId == null) {
+        this._setCharacterPose(this.game.state);
+      }
+    }, 2600);
   }
 
   render(state) {
@@ -159,7 +198,37 @@ export class GameUI {
 
     this._renderReports(state);
     this._renderDistractions(state);
+    this._setCharacterPose(state);
     this._renderOverlay(state);
+  }
+
+  // Elige el sprite del personaje: rumbo al reporte activo, o reposo si no hay.
+  _setCharacterPose(state) {
+    let pose;
+    const active = state.activeReportId
+      ? this.game.reportManager.getReport(state.activeReportId)
+      : null;
+    if (active) {
+      pose = this._directionToReport(active);
+    } else {
+      pose = this._idlePose;
+    }
+    const src = this._charSprites[pose] || this._charSprites.standing;
+    if (this.els.charImg.getAttribute("src") !== src) {
+      this.els.charImg.setAttribute("src", src);
+    }
+  }
+
+  _directionToReport(report) {
+    const progress = clamp01(1 - report.remainingTime / report.timeLimit);
+    const posProgress = Math.min(progress, 0.94);
+    const rx = lerp(report.spawnX, report.targetX ?? CENTER.x, posProgress);
+    const ry = lerp(report.spawnY, report.targetY ?? CENTER.y, posProgress);
+    const dx = rx - CENTER.x;
+    const dy = ry - CENTER.y;
+    if (Math.hypot(dx, dy) < 0.02) return "north";
+    const index = Math.round(Math.atan2(dy, dx) / (Math.PI / 4));
+    return DIR_BY_INDEX[index] || "north";
   }
 
   _renderReports(state) {
