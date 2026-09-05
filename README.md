@@ -16,6 +16,25 @@ El objetivo es crear una experiencia arcade rápida basada en:
 
 ---
 
+## Cómo ejecutar
+
+```bash
+npm install
+npm run dev
+```
+
+## Estado del desarrollo
+
+* **Fase 1 — Core:** hecho. Estado central y máquina de estados, game loop con
+  `deltaTime`, captura de teclado global, generación y validación de reportes,
+  puntuación con bonus de velocidad, combo, productividad, game over y reinicio.
+* **Fase 2 — Modificadores:** en progreso.
+* **Fase 3 — Sistemas (score/combo/dificultad):** pendiente.
+* **Fase 4 — Distracciones:** pendiente.
+* **Fase 5 — Audio y pulido:** pendiente (audio al final).
+
+---
+
 # 1. Technical Constraints
 
 Este proyecto está diseñado para una Game Jam.

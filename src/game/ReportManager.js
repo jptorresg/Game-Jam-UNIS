@@ -1,30 +1,35 @@
 import { GAME_CONFIG } from "../config.js";
 import { randomWord } from "../data/words.js";
 
-// Responsable de: crear reportes, asignar palabras, calcular la respuesta esperada,
-// controlar los timers y completar / expirar reportes.
+// Responsable de: crear reportes, asignar palabras y modificadores, calcular la
+// respuesta esperada, controlar los timers y completar / expirar reportes.
 // No renderiza HTML ni toca la puntuacion: emite eventos para que Game reaccione.
 export class ReportManager extends EventTarget {
-  constructor(state) {
+  constructor(state, modifierSystem) {
     super();
     this.state = state;
+    this.modifierSystem = modifierSystem;
     this._spawnTimer = 0;
     this._nextId = 1;
+
+    // Estos valores los ajusta Game desde DifficultySystem.
     this.spawnInterval = GAME_CONFIG.initialSpawnInterval;
+    this.reportTime = GAME_CONFIG.initialReportTime;
+    this.maxActiveReports = GAME_CONFIG.initialMaxActiveReports;
   }
 
-  // Reinicia el manager para una partida nueva.
   reset(state) {
     this.state = state;
     this._spawnTimer = 0;
     this._nextId = 1;
     this.spawnInterval = GAME_CONFIG.initialSpawnInterval;
+    this.reportTime = GAME_CONFIG.initialReportTime;
+    this.maxActiveReports = GAME_CONFIG.initialMaxActiveReports;
     this.state.reports.length = 0;
-    this.spawnReport(); // arrancar con un reporte visible
+    this.spawnReport();
   }
 
   update(deltaTime) {
-    // Descontar tiempo a cada reporte pendiente.
     for (const report of this.state.reports) {
       if (report.status !== "pending") continue;
       report.remainingTime -= deltaTime;
@@ -34,11 +39,10 @@ export class ReportManager extends EventTarget {
       }
     }
 
-    // Spawning por intervalo.
     this._spawnTimer += deltaTime;
     if (
       this._spawnTimer >= this.spawnInterval &&
-      this._pendingCount() < GAME_CONFIG.maxActiveReports
+      this._pendingCount() < this.maxActiveReports
     ) {
       this._spawnTimer = 0;
       this.spawnReport();
@@ -46,16 +50,17 @@ export class ReportManager extends EventTarget {
   }
 
   spawnReport() {
-    if (this._pendingCount() >= GAME_CONFIG.maxActiveReports) return null;
+    if (this._pendingCount() >= this.maxActiveReports) return null;
 
     const word = randomWord();
+    const modifier = this.modifierSystem.getRandomModifier(this.state.level);
     const report = {
       id: `report-${String(this._nextId++).padStart(3, "0")}`,
       word,
-      modifier: null, // los modificadores llegan en la Fase 2
-      expectedInput: word,
-      timeLimit: GAME_CONFIG.initialReportTime,
-      remainingTime: GAME_CONFIG.initialReportTime,
+      modifier: modifier.id,
+      expectedInput: modifier.transform(word),
+      timeLimit: this.reportTime,
+      remainingTime: this.reportTime,
       status: "pending",
       points: GAME_CONFIG.baseReportPoints,
     };
@@ -68,7 +73,6 @@ export class ReportManager extends EventTarget {
     return this.state.reports.find((r) => r.id === id) || null;
   }
 
-  // Llamado por Game cuando el input coincide con expectedInput.
   completeReport(id) {
     const report = this.getReport(id);
     if (!report || report.status !== "pending") return;
@@ -88,9 +92,7 @@ export class ReportManager extends EventTarget {
   _expireReport(report) {
     report.status = "expired";
     this._removeReport(report.id);
-    this.dispatchEvent(
-      new CustomEvent("reportExpired", { detail: { report } }),
-    );
+    this.dispatchEvent(new CustomEvent("reportExpired", { detail: { report } }));
   }
 
   _removeReport(id) {

@@ -1,11 +1,18 @@
 :root {
-  --bg: #1f2430;
-  --panel: #2b3242;
-  --paper: #f4ecd8;
-  --ink: #2b2b2b;
-  --accent: #ffcc4d;
-  --danger: #ff5c5c;
-  --ok: #4dd76a;
+  --bg: #161b26;
+  --panel: #232b3b;
+  --panel-edge: #313c52;
+  --paper: #f6efdd;
+  --paper-edge: #d9cca8;
+  --ink: #33302a;
+  --ink-soft: #7c7361;
+  --accent: #ffcf5c;
+  --danger: #ff5f5f;
+  --ok: #46d873;
+  --mod-red: #e8504f;
+  --mod-blue: #4d8dff;
+  --mod-green: #46c46a;
+  --mod-gray: #9aa4b8;
   --font: "Courier New", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -24,21 +31,24 @@ body {
 }
 
 #app {
-  width: min(960px, 100vw);
-  padding: 16px;
+  width: min(1040px, 100vw);
+  min-height: 100vh;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   position: relative;
 }
 
 /* ---------- HUD ---------- */
 .hud {
   display: flex;
-  gap: 12px;
-  background: var(--panel);
+  gap: 14px;
+  background: linear-gradient(180deg, var(--panel), #1c2331);
+  border: 1px solid var(--panel-edge);
   border-radius: 10px;
-  padding: 12px 16px;
+  padding: 12px 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .hud__stat {
@@ -50,20 +60,25 @@ body {
 
 .hud__stat--prod {
   margin-left: auto;
-  min-width: 200px;
+  min-width: 220px;
+}
+
+.hud__stat--hot [data-hud="combo"] {
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(255, 207, 92, 0.6);
 }
 
 .hud__label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: normal;
-  letter-spacing: 1px;
-  color: #9aa4b8;
+  letter-spacing: 2px;
+  color: #8a94aa;
 }
 
 .prod-bar {
-  margin-top: 4px;
+  margin-top: 5px;
   height: 8px;
-  background: #1b2029;
+  background: #12161f;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -79,76 +94,218 @@ body {
   background: var(--danger);
 }
 
+/* ---------- Oficina (fondo) ---------- */
+.office {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, #2c3446 0%, #2a3142 55%, #3a3020 55%, #4a3c26 100%);
+  border: 1px solid var(--panel-edge);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.45);
+}
+
+/* Brillo del escritorio */
+.office::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(255, 220, 160, 0.12), transparent);
+  pointer-events: none;
+}
+
+.office__scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Ventana con cielo */
+.office__window {
+  position: absolute;
+  top: 28px;
+  right: 40px;
+  width: 210px;
+  height: 140px;
+  border: 9px solid #1d2331;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.office__sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 72% 26%, rgba(255, 255, 255, 0.9) 0 10px, transparent 11px),
+    linear-gradient(180deg, #7fbce4 0%, #a9d4ec 45%, #e7f2dc 100%);
+}
+
+.office__window::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#1d2331, #1d2331) 50% 0 / 6px 100% no-repeat,
+    linear-gradient(#1d2331, #1d2331) 0 50% / 100% 6px no-repeat;
+}
+
+/* Planta en una esquina */
+.office__plant {
+  position: absolute;
+  left: 26px;
+  bottom: 0;
+  width: 70px;
+  height: 120px;
+  background:
+    radial-gradient(ellipse at 50% 20%, #3f7d4a 0 42%, transparent 43%),
+    radial-gradient(ellipse at 20% 40%, #356b40 0 34%, transparent 35%),
+    radial-gradient(ellipse at 80% 40%, #356b40 0 34%, transparent 35%);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.3));
+}
+
+.office__plant::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  bottom: 0;
+  width: 30px;
+  height: 42px;
+  background: #7b4a2c;
+  border-radius: 4px 4px 2px 2px;
+}
+
+/* Borde del escritorio */
+.office__deskline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
 /* ---------- Reportes ---------- */
 .reports {
+  position: absolute;
+  inset: 0;
+  padding: 20px;
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 18px;
   align-content: flex-start;
-  min-height: 320px;
 }
 
 .report {
-  width: 220px;
-  background: var(--paper);
+  width: 210px;
+  background: linear-gradient(180deg, #fbf6e8, var(--paper));
   color: var(--ink);
-  border-radius: 6px;
-  padding: 16px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  padding: 14px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
   transform: rotate(-1deg);
-  transition: transform 0.12s, box-shadow 0.12s;
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.2s;
   cursor: pointer;
 }
 
 .report:nth-child(even) {
-  transform: rotate(1.2deg);
+  transform: rotate(1.4deg);
 }
 
 .report--active {
-  transform: rotate(0deg) scale(1.04);
-  box-shadow: 0 0 0 3px var(--accent), 0 8px 18px rgba(0, 0, 0, 0.4);
+  transform: rotate(0deg) scale(1.05);
+  box-shadow: 0 0 0 3px var(--accent), 0 10px 22px rgba(0, 0, 0, 0.45);
 }
 
-.report--urgent .report__timer {
-  color: var(--danger);
+.report--enter {
+  opacity: 0;
+  transform: translateY(-14px) rotate(-3deg) scale(0.9);
+}
+
+.report.is-leaving {
+  opacity: 0;
+  transform: scale(1.15) rotate(4deg);
 }
 
 .report__head {
-  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
   letter-spacing: 1px;
-  color: #8a7f63;
-  border-bottom: 1px dashed #b6a985;
+  color: var(--ink-soft);
+  border-bottom: 1px dashed var(--paper-edge);
   padding-bottom: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
+.report__modifier {
+  font-weight: bold;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+
+.modifier--red { background: var(--mod-red); }
+.modifier--blue { background: var(--mod-blue); }
+.modifier--green { background: var(--mod-green); }
+.modifier--gray { background: var(--mod-gray); }
+
 .report__word {
-  font-size: 26px;
+  font-size: 25px;
   font-weight: bold;
   letter-spacing: 2px;
   word-break: break-all;
-  margin-bottom: 10px;
+  text-align: center;
+  margin: 6px 0;
+}
+
+.report__input {
+  min-height: 22px;
+  font-size: 17px;
+  letter-spacing: 3px;
+  text-align: center;
+  word-break: break-all;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  padding: 3px 4px;
+  margin-bottom: 8px;
 }
 
 .report__typed {
-  color: var(--ok);
-  background: rgba(77, 215, 106, 0.18);
+  color: #1f9e46;
+  font-weight: bold;
 }
 
 .report__rest {
   color: var(--ink);
-  opacity: 0.55;
+  opacity: 0.35;
 }
 
 .report__timer {
-  font-size: 14px;
+  font-size: 13px;
   text-align: right;
 }
 
+.report--urgent .report__timer {
+  color: var(--danger);
+  font-weight: bold;
+}
+
 .report__timerbar {
-  margin-top: 6px;
-  height: 6px;
-  background: #d8ccae;
+  margin-top: 5px;
+  height: 5px;
+  background: var(--paper-edge);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -157,6 +314,7 @@ body {
   height: 100%;
   width: 100%;
   background: var(--accent);
+  transition: width 0.1s linear;
 }
 
 .report--urgent .report__timerbar-fill {
@@ -173,15 +331,115 @@ body {
   animation: report-shake 0.18s ease-in-out 2;
 }
 
+/* ---------- Distracciones ---------- */
+.distractions {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.distraction {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.distraction--enter {
+  opacity: 0;
+}
+
+.distraction.is-leaving {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.6);
+}
+
+.distraction__glyph {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+
+.distraction--fly {
+  animation: fly-buzz 0.35s linear infinite alternate;
+}
+
+@keyframes fly-buzz {
+  from { margin-top: -2px; }
+  to { margin-top: 2px; }
+}
+
+.distraction--notification {
+  background: #2b3242;
+  color: #fff;
+  border: 1px solid var(--panel-edge);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.distraction--popup {
+  width: 230px;
+  background: #e9e9ee;
+  color: #222;
+  border-radius: 4px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.popup__bar {
+  background: linear-gradient(180deg, #4d8dff, #2f6fe0);
+  color: #fff;
+  font-weight: bold;
+  padding: 6px 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup__body {
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.popup__ok {
+  display: block;
+  margin: 12px auto 0;
+  padding: 5px 20px;
+  font-family: var(--font);
+  font-weight: bold;
+  border: 1px solid #999;
+  border-radius: 3px;
+  background: #f4f4f6;
+  cursor: pointer;
+}
+
+/* ---------- Screen shake ---------- */
+@keyframes office-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-5px, 3px); }
+  40% { transform: translate(5px, -2px); }
+  60% { transform: translate(-4px, -3px); }
+  80% { transform: translate(4px, 2px); }
+}
+
+.office--shake {
+  animation: office-shake 0.22s ease-in-out;
+}
+
 /* ---------- Overlay (menu / pausa / game over) ---------- */
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(15, 18, 24, 0.82);
+  background: rgba(12, 15, 20, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 20;
 }
 
 .overlay[hidden] {
@@ -189,23 +447,25 @@ body {
 }
 
 .overlay__panel {
-  background: var(--panel);
+  background: linear-gradient(180deg, var(--panel), #1c2331);
+  border: 1px solid var(--panel-edge);
   padding: 40px 48px;
   border-radius: 14px;
   text-align: center;
-  max-width: 460px;
+  max-width: 480px;
 }
 
 .overlay__panel h1 {
-  font-size: 40px;
-  letter-spacing: 3px;
+  font-size: 42px;
+  letter-spacing: 4px;
   margin-bottom: 16px;
   color: var(--accent);
+  text-shadow: 0 0 24px rgba(255, 207, 92, 0.35);
 }
 
 .overlay__panel p {
   margin-bottom: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .overlay__hint {
@@ -214,14 +474,14 @@ body {
 }
 
 .overlay__score {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
   color: var(--accent);
 }
 
 .overlay__panel button {
-  margin: 12px 0;
-  padding: 12px 28px;
+  margin: 14px 0;
+  padding: 12px 30px;
   font-family: var(--font);
   font-size: 18px;
   font-weight: bold;

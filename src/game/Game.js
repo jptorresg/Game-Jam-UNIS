@@ -1,5 +1,8 @@
-import { GAME_CONFIG } from "../config.js";
+import { GAME_CONFIG, comboMultiplier } from "../config.js";
 import { ReportManager } from "./ReportManager.js";
+import { ModifierSystem } from "./ModifierSystem.js";
+import { DifficultySystem } from "./DifficultySystem.js";
+import { DistractionManager } from "./DistractionManager.js";
 
 export const GameStatus = {
   MENU: "MENU",
@@ -9,13 +12,17 @@ export const GameStatus = {
 };
 
 // Controlador principal. Centraliza el estado y coordina los sistemas.
-// Emite "change" tras cada actualizacion para que la UI se refresque,
-// e "inputError" para feedback puntual (shake / sonido en fases futuras).
+// Emite "change" tras cada actualizacion para que la UI se refresque, e
+// "inputError" / "hit" para feedback puntual (shake, sonido en fases futuras).
 export class Game extends EventTarget {
   constructor() {
     super();
     this.state = createInitialState();
-    this.reportManager = new ReportManager(this.state);
+
+    this.modifierSystem = new ModifierSystem();
+    this.difficulty = new DifficultySystem();
+    this.reportManager = new ReportManager(this.state, this.modifierSystem);
+    this.distractionManager = new DistractionManager(this.state);
 
     this._rafId = null;
     this._lastFrame = 0;
@@ -25,8 +32,14 @@ export class Game extends EventTarget {
     this.reportManager.addEventListener("reportCompleted", (e) =>
       this._onReportCompleted(e.detail),
     );
-    this.reportManager.addEventListener("reportExpired", (e) =>
-      this._onReportExpired(e.detail),
+    this.reportManager.addEventListener("reportExpired", () =>
+      this._onReportExpired(),
+    );
+    this.distractionManager.addEventListener("distractionCleared", () =>
+      this._onDistractionCleared(),
+    );
+    this.distractionManager.addEventListener("distractionMissed", () =>
+      this._onDistractionMissed(),
     );
   }
 
@@ -35,6 +48,7 @@ export class Game extends EventTarget {
     this.state = createInitialState();
     this.state.status = GameStatus.PLAYING;
     this.reportManager.reset(this.state);
+    this.distractionManager.reset(this.state);
     this._selectNextReport();
 
     window.addEventListener("keydown", this._onKeyDown);
@@ -72,13 +86,21 @@ export class Game extends EventTarget {
     }
   }
 
+  clearDistraction(id) {
+    if (this.state.status !== GameStatus.PLAYING) return;
+    this.distractionManager.clear(id);
+    this._emitChange();
+  }
+
   _loop(now) {
     const deltaTime = Math.min((now - this._lastFrame) / 1000, 0.1);
     this._lastFrame = now;
 
     if (this.state.status === GameStatus.PLAYING) {
       this.state.elapsedTime += deltaTime;
+      this._applyDifficulty();
       this.reportManager.update(deltaTime);
+      this.distractionManager.update(deltaTime);
       if (!this.reportManager.getReport(this.state.activeReportId)) {
         this._selectNextReport();
       }
@@ -86,6 +108,18 @@ export class Game extends EventTarget {
     }
 
     this._rafId = requestAnimationFrame(this._loop);
+  }
+
+  _applyDifficulty() {
+    const level = this.difficulty.levelFor(this.state.elapsedTime);
+    this.state.level = level;
+
+    const params = this.difficulty.paramsFor(level);
+    this.reportManager.spawnInterval = params.spawnInterval;
+    this.reportManager.reportTime = params.reportTime;
+    this.reportManager.maxActiveReports = params.maxActiveReports;
+    this.distractionManager.spawnInterval = params.distractionInterval;
+    this.distractionManager.enabled = params.distractionsEnabled;
   }
 
   _onKeyDown(event) {
@@ -123,9 +157,11 @@ export class Game extends EventTarget {
 
   _onReportCompleted({ report, remainingRatio }) {
     const speedBonus = Math.round(GAME_CONFIG.speedBonusMax * remainingRatio);
-    this.state.score += report.points + speedBonus;
+    const multiplier = comboMultiplier(this.state.combo);
+    this.state.score += (report.points + speedBonus) * multiplier;
     this.state.combo += 1;
     this._selectNextReport();
+    this.dispatchEvent(new CustomEvent("reportDone", { detail: { report } }));
   }
 
   _onReportExpired() {
@@ -140,14 +176,24 @@ export class Game extends EventTarget {
     this.dispatchEvent(new CustomEvent("inputError"));
   }
 
+  _onDistractionCleared() {
+    this.state.score += GAME_CONFIG.distractionClearPoints;
+  }
+
+  _onDistractionMissed() {
+    this._applyProductivityHit(GAME_CONFIG.penalties.distractionMissed);
+  }
+
   _applyProductivityHit(amount) {
     this.state.productivity = Math.max(0, this.state.productivity - amount);
+    this.dispatchEvent(new CustomEvent("hit"));
     if (this.state.productivity <= 0) this._gameOver();
   }
 
   _gameOver() {
     this.state.status = GameStatus.GAME_OVER;
     this.reportManager.clear();
+    this.distractionManager.clearAll();
     window.removeEventListener("keydown", this._onKeyDown);
     this._emitChange();
   }
@@ -171,6 +217,7 @@ function createInitialState() {
     productivity: GAME_CONFIG.initialProductivity,
     level: 1,
     reports: [],
+    distractions: [],
     activeReportId: null,
     currentInput: "",
     elapsedTime: 0,
