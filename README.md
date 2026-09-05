@@ -16,31 +16,6 @@ El objetivo es crear una experiencia arcade rápida basada en:
 
 ---
 
-## Estado actual del desarrollo
-
-Fase 1 (Core) en progreso. Implementado:
-
-* Estado central del juego y máquina de estados (`MENU`, `PLAYING`, `PAUSED`, `GAME_OVER`).
-* Game loop basado en `requestAnimationFrame` + `deltaTime`.
-* Captura de teclado global (sin `<input>` visible).
-* Generación de reportes con timers.
-* Validación incremental de la palabra escrita.
-* Completado / expiración de reportes.
-* Puntuación básica con bonus por velocidad, contador de combo, productividad y game over.
-* HUD y tarjetas de reporte con feedback de escritura, pausa (Esc) y reinicio.
-
-Pendiente: modificadores (Fase 2), sistemas de score/combo/dificultad completos (Fase 3),
-distracciones (Fase 4), audio y pulido (Fase 5).
-
-## Cómo ejecutar
-
-```bash
-npm install
-npm run dev
-```
-
----
-
 # 1. Technical Constraints
 
 Este proyecto está diseñado para una Game Jam.
@@ -171,7 +146,6 @@ office-panic/
 ```
 
 Esta estructura puede simplificarse si durante la jam se vuelve innecesariamente compleja.
-Durante la Fase 1 solo se crean los archivos necesarios; el resto se añade por fase.
 
 ---
 
@@ -234,7 +208,13 @@ requestAnimationFrame()
 
 Usar `deltaTime` para cualquier comportamiento dependiente del tiempo.
 
-No depender exclusivamente de `setInterval()` para movimiento o timers críticos del gameplay.
+No depender exclusivamente de:
+
+```javascript
+setInterval()
+```
+
+para movimiento o timers críticos del gameplay.
 
 `setTimeout()` / `setInterval()` pueden utilizarse para eventos simples de spawning si no generan problemas con el estado del juego.
 
@@ -243,6 +223,8 @@ No depender exclusivamente de `setInterval()` para movimiento o timers críticos
 # 6. Game State
 
 El estado principal debe contener únicamente información relevante para la partida.
+
+Ejemplo:
 
 ```javascript
 const gameState = {
@@ -265,11 +247,21 @@ const gameState = {
 
 Evitar almacenar referencias DOM directamente dentro del estado lógico.
 
-Separar: Game State → Game Logic → UI.
+Separar:
+
+```text
+Game State
+     ↓
+Game Logic
+     ↓
+UI
+```
 
 ---
 
 # 7. Reports
+
+Los reportes son la mecánica principal.
 
 Cada reporte debe tener:
 
@@ -305,9 +297,37 @@ FAILED
 # 8. Report Lifecycle
 
 ```text
-SPAWN → PENDING → ACTIVE → PLAYER INPUT → CORRECT → COMPLETED
-ACTIVE → TIMEOUT → EXPIRED
-ACTIVE → INVALID INPUT → FAILED
+SPAWN
+  ↓
+PENDING
+  ↓
+ACTIVE
+  ↓
+PLAYER INPUT
+  ↓
+CORRECT
+  ↓
+COMPLETED
+```
+
+o:
+
+```text
+ACTIVE
+  ↓
+TIMEOUT
+  ↓
+EXPIRED
+```
+
+o:
+
+```text
+ACTIVE
+  ↓
+INVALID INPUT
+  ↓
+FAILED
 ```
 
 El comportamiento exacto de `FAILED` debe ser configurable.
@@ -318,23 +338,84 @@ El comportamiento exacto de `FAILED` debe ser configurable.
 
 El jugador debe poder escribir sin hacer click previamente sobre un input HTML.
 
-El juego captura directamente `window.addEventListener("keydown", ...)`.
+El juego debe capturar directamente:
 
-Cada tecla se compara contra la respuesta esperada del reporte activo. Al completar la palabra el reporte pasa a `COMPLETED`, el input se limpia y se selecciona el siguiente reporte.
+```javascript
+window.addEventListener("keydown", ...)
+```
+
+Cada tecla debe compararse contra la respuesta esperada del reporte activo.
+
+Ejemplo:
+
+```text
+Expected:
+
+SERVIDOR
+
+Input:
+
+S
+SE
+SER
+SERV
+SERVI
+...
+SERVIDOR
+```
+
+Al completar la palabra:
+
+```text
+report → COMPLETED
+```
+
+El input se limpia y se selecciona el siguiente reporte.
 
 ---
 
 # 10. Input Validation
 
-El sistema mantiene `currentInput` y lo compara con `report.expectedInput`.
+El sistema debe mantener:
 
 ```javascript
-const isCorrect = currentInput === report.expectedInput;
+currentInput
 ```
 
-Durante la escritura se usa comparación incremental (`expectedInput.startsWith(currentInput)`).
+y compararlo con:
 
-El comportamiento ante un error se define centralmente, no dentro de la UI.
+```javascript
+report.expectedInput
+```
+
+Ejemplo:
+
+```javascript
+const isCorrect =
+    currentInput === report.expectedInput;
+```
+
+Durante la escritura puede utilizarse comparación incremental.
+
+Ejemplo:
+
+```text
+Expected: SERVIDOR
+Input:    SERV
+
+VALID
+```
+
+Pero:
+
+```text
+Expected: SERVIDOR
+Input:    SERX
+
+INVALID
+```
+
+El comportamiento ante un error debe definirse centralmente y no dentro de la UI.
 
 ---
 
@@ -342,11 +423,39 @@ El comportamiento ante un error se define centralmente, no dentro de la UI.
 
 Los modificadores transforman la palabra original en una palabra esperada diferente.
 
+Arquitectura:
+
 ```text
-Original Word → Modifier → Expected Input
+Original Word
+      ↓
+Modifier
+      ↓
+Expected Input
 ```
 
-Los modificadores se implementan como funciones independientes. Agregar nuevos modificadores no debe requerir modificar `ReportManager`.
+Ejemplo:
+
+```javascript
+word = "servidor"
+
+modifier = "uppercase"
+
+expectedInput = "SERVIDOR"
+```
+
+Los modificadores deben implementarse como funciones independientes.
+
+Conceptualmente:
+
+```javascript
+modifiers = {
+    uppercase(word),
+    reverse(word),
+    vowelShift(word)
+}
+```
+
+Agregar nuevos modificadores no debe requerir modificar `ReportManager`.
 
 ---
 
@@ -354,17 +463,49 @@ Los modificadores se implementan como funciones independientes. Agregar nuevos m
 
 ## RED — Uppercase
 
+Color:
+
 ```text
-servidor → SERVIDOR
+RED
 ```
+
+Transformación:
+
+```text
+servidor
+↓
+SERVIDOR
+```
+
+---
 
 ## BLUE — Reverse
 
+Color:
+
 ```text
-servidor → rodivres
+BLUE
 ```
 
+Transformación:
+
+```text
+servidor
+↓
+rodivres
+```
+
+---
+
 ## GREEN — Vowel Shift
+
+Color:
+
+```text
+GREEN
+```
+
+Regla inicial:
 
 ```text
 a → e
@@ -374,54 +515,96 @@ o → u
 u → a
 ```
 
-Ejemplo: `casa → cese`. La transformación debe ser determinista.
+Ejemplo:
+
+```text
+casa
+↓
+cese
+```
+
+La transformación debe ser determinista.
 
 ---
 
 # 13. Modifier Data
+
+Los modificadores deben tener metadata:
 
 ```javascript
 {
     id: "uppercase",
     color: "red",
     label: "MAYÚSCULAS",
+
     transform: (word) => word.toUpperCase()
 }
 ```
+
+Ejemplo:
 
 ```javascript
 {
     id: "reverse",
     color: "blue",
     label: "AL REVÉS",
-    transform: (word) => word.split("").reverse().join("")
+
+    transform: (word) =>
+        word.split("").reverse().join("")
 }
 ```
+
+Esto permite que la UI obtenga la información del modificador sin duplicarla.
 
 ---
 
 # 14. Modifier Selection
 
-El modificador de un reporte se determina al generarlo:
+El modificador de un reporte debe determinarse al generarlo.
+
+Ejemplo:
 
 ```javascript
-const modifier = modifierSystem.getRandomModifier();
-const expectedInput = modifier.transform(word);
+const modifier =
+    modifierSystem.getRandomModifier();
 ```
 
-El reporte almacena el resultado esperado. No recalcular la transformación en múltiples partes del código.
+Posteriormente:
+
+```javascript
+const expectedInput =
+    modifier.transform(word);
+```
+
+El reporte debe almacenar el resultado esperado.
+
+No recalcular la transformación en múltiples partes del código.
 
 ---
 
 # 15. Report Generation
 
-`ReportManager` es responsable de: crear reportes, asignar palabras, asignar modificadores, calcular respuesta esperada, controlar timers, completar y expirar reportes.
+El `ReportManager` será responsable de:
 
-No es responsable de: renderizar HTML complejo, controlar la puntuación global, reproducir sonidos directamente.
+* Crear reportes.
+* Asignar palabras.
+* Asignar modificadores.
+* Calcular respuesta esperada.
+* Controlar timers.
+* Completar reportes.
+* Expirar reportes.
+
+No debe ser responsable de:
+
+* Renderizar HTML complejo.
+* Controlar puntuación global.
+* Reproducir sonidos directamente.
 
 ---
 
 # 16. Report Spawning
+
+El sistema debe generar reportes progresivamente.
 
 Variables configurables:
 
@@ -432,35 +615,96 @@ maxActiveReports
 reportTimeLimit
 ```
 
-Los valores se centralizan para facilitar el balance.
+Ejemplo:
+
+```text
+Level 1
+→ 1 reporte cada 3 segundos
+
+Level 2
+→ 1 reporte cada 2.5 segundos
+
+Level 3
+→ 1 reporte cada 2 segundos
+```
+
+Los valores deben centralizarse para facilitar el balance.
 
 ---
 
 # 17. Multiple Reports
 
-El juego permite varios reportes simultáneos. El jugador debe poder identificar cuál es el reporte activo.
+El juego debe permitir varios reportes simultáneamente.
+
+Ejemplo:
+
+```text
+┌──────────────┐
+│ REPORT #01   │
+│ servidor     │
+│ 🔴           │
+│ 3.4s         │
+└──────────────┘
+
+┌──────────────┐
+│ REPORT #02   │
+│ impresora    │
+│ 🔵           │
+│ 7.1s         │
+└──────────────┘
+
+┌──────────────┐
+│ REPORT #03   │
+│ correo       │
+│ 🟢           │
+│ 9.3s         │
+└──────────────┘
+```
+
+El jugador debe poder identificar cuál es el reporte activo.
 
 ---
 
 # 18. Active Report
 
-Debe existir únicamente un `activeReportId` en cada momento. La escritura se aplica únicamente al reporte activo.
+Debe existir únicamente un:
 
-Selección: click, teclas numéricas o atajos. Para el MVP se usa **click sobre el reporte**.
+```javascript
+activeReportId
+```
+
+en cada momento.
+
+La escritura se aplica únicamente al reporte activo.
+
+La selección del reporte puede realizarse mediante:
+
+* Click.
+* Teclas numéricas.
+* Atajos.
+
+Para el MVP se recomienda **click sobre el reporte**.
 
 ---
 
 # 19. Distractions
 
-Objetos visuales que aparecen sobre la oficina y se eliminan con click.
+Las distracciones son objetos visuales que aparecen sobre la oficina.
+
+El jugador las elimina haciendo click.
+
+Ejemplo:
 
 ```javascript
 {
     id: "distraction-01",
     type: "fly",
+
     x: 500,
     y: 250,
+
     lifetime: 4,
+
     clickable: true
 }
 ```
@@ -469,49 +713,151 @@ Objetos visuales que aparecen sobre la oficina y se eliminan con click.
 
 # 20. Distraction Types
 
-MVP: `fly` (mosca en posición aleatoria), `notification` (notificación sobre la interfaz), `popup` (ventana que bloquea parcialmente la interfaz).
+MVP:
+
+### Fly
+
+Una mosca que aparece en una posición aleatoria.
+
+```text
+🪰
+```
+
+### Notification
+
+Una notificación que aparece sobre la interfaz.
+
+```text
+🔔 New notification
+```
+
+### Popup
+
+Una ventana que bloquea parcialmente la interfaz.
+
+```text
+┌────────────────────┐
+│ SYSTEM MESSAGE     │
+│                    │
+│      [ OK ]        │
+└────────────────────┘
+```
 
 ---
 
 # 21. Distraction Manager
 
-Responsabilidades: spawn, position, movement, lifetime, click detection, removal, penalties.
+Responsabilidades:
 
-No modifica directamente el score: emite un evento o devuelve un resultado para que `ScoreSystem` / `Game` aplique la consecuencia.
+* Spawn.
+* Position.
+* Movement.
+* Lifetime.
+* Click detection.
+* Removal.
+* Penalties.
+
+No debe modificar directamente el score.
+
+Debe emitir un evento o devolver un resultado para que `ScoreSystem` / `Game` aplique la consecuencia.
 
 ---
 
 # 22. Mouse Interaction
 
-Usar `pointerdown` o `click`. Cada distracción tiene un elemento DOM independiente con `data-distraction-id` que la relaciona con su estado interno.
+Utilizar:
+
+```javascript
+pointerdown
+```
+
+o:
+
+```javascript
+click
+```
+
+para detectar interacción.
+
+Cada distracción debe tener un elemento DOM independiente.
+
+Ejemplo:
+
+```html
+<div
+    class="distraction distraction--fly"
+    data-distraction-id="distraction-01">
+</div>
+```
+
+El ID permite relacionar el elemento visual con el estado interno.
 
 ---
 
 # 23. Productivity
 
+La partida tiene un valor:
+
 ```javascript
 productivity = 100;
 ```
 
+La productividad disminuye cuando ocurren eventos negativos.
+
+Ejemplo:
+
 ```text
-Reporte expirado    → -10 productivity
-Error               → -5 productivity
-Distracción ignorada → -5 productivity
+Reporte expirado
+→ -10 productivity
+
+Error
+→ -5 productivity
+
+Distracción ignorada
+→ -5 productivity
 ```
 
-Los valores están centralizados en configuración.
+Los valores deben estar centralizados en configuración.
 
 ---
 
 # 24. Game Over
 
-Cuando `productivity <= 0` el juego pasa a `GAME_OVER`. Se detienen: spawning, input, timers, distracciones, difficulty updates. El jugador puede reiniciar inmediatamente.
+Cuando:
+
+```javascript
+productivity <= 0
+```
+
+el juego cambia a:
+
+```text
+GAME_OVER
+```
+
+Se deben detener:
+
+* Spawning.
+* Input.
+* Timers.
+* Distracciones.
+* Difficulty updates.
+
+El jugador debe poder reiniciar inmediatamente.
 
 ---
 
 # 25. Score System
 
-El score depende principalmente de: reporte completado + velocidad + combo.
+El score debe depender principalmente de:
+
+```text
+Reporte completado
++ velocidad
++ combo
+```
+
+Ejemplo:
 
 ```javascript
 basePoints = 100;
@@ -519,18 +865,27 @@ speedBonus = ...
 comboMultiplier = ...
 ```
 
-No usar fórmulas excesivamente complejas.
+No utilizar fórmulas excesivamente complejas.
+
+La puntuación debe sentirse consistente y fácil de balancear.
 
 ---
 
 # 26. Combo
 
+Cada reporte completado correctamente:
+
 ```text
-Reporte completado → combo += 1
-Fallo / expiración  → combo = 0
+combo += 1
 ```
 
-Multiplicador:
+Un fallo o reporte expirado:
+
+```text
+combo = 0
+```
+
+El multiplicador puede ser:
 
 ```text
 0-4    → x1
@@ -539,23 +894,54 @@ Multiplicador:
 20+    → x4
 ```
 
-Valores configurables.
+Los valores son configurables.
 
 ---
 
 # 27. Difficulty System
 
-La dificultad aumenta automáticamente. Variables: `level`, `spawnInterval`, `reportTimeLimit`, `distractionFrequency`, `maxActiveReports`.
+La dificultad aumenta automáticamente.
+
+Variables:
+
+```javascript
+level
+spawnInterval
+reportTimeLimit
+distractionFrequency
+maxActiveReports
+```
+
+Ejemplo:
+
+```text
+Level 1
+↓
+Level 2
+↓
+Level 3
+↓
+Level 4
+↓
+...
+```
+
+El sistema debe aumentar dificultad sin crear comportamientos impredecibles.
 
 ---
 
 # 28. Difficulty Scaling
 
+El escalado debe basarse en una función sencilla.
+
+Ejemplo conceptual:
+
 ```javascript
-spawnInterval = Math.max(
-    minSpawnInterval,
-    initialSpawnInterval - level * 0.15
-);
+spawnInterval =
+    Math.max(
+        minSpawnInterval,
+        initialSpawnInterval - level * 0.15
+    );
 ```
 
 Evitar sistemas complejos de dificultad adaptativa durante el MVP.
@@ -564,23 +950,83 @@ Evitar sistemas complejos de dificultad adaptativa durante el MVP.
 
 # 29. Word Pool
 
-Palabras almacenadas localmente en `src/data/words.js`. Relacionadas con oficina, fáciles de reconocer, longitud variable. No incluir palabras excesivamente largas en niveles iniciales.
+Las palabras estarán almacenadas localmente.
+
+Ejemplo:
+
+```javascript
+export const WORDS = [
+    "servidor",
+    "impresora",
+    "correo",
+    "reunion",
+    "cliente",
+    "factura",
+    "documento",
+    "contraseña",
+    "sistema",
+    "archivo"
+];
+```
+
+Las palabras deben ser:
+
+* Relacionadas con oficina.
+* Fáciles de reconocer.
+* De longitud variable.
+
+No incluir palabras excesivamente largas en niveles iniciales.
 
 ---
 
 # 30. Configuration
 
-Valores de gameplay centralizados en `src/config.js` (`GAME_CONFIG`). Evitar números mágicos repartidos por múltiples archivos.
+Los valores de gameplay deben estar centralizados.
+
+Ejemplo:
+
+```javascript
+export const GAME_CONFIG = {
+    initialProductivity: 100,
+
+    initialSpawnInterval: 3,
+    minSpawnInterval: 0.8,
+
+    initialReportTime: 8,
+
+    maxActiveReports: 3,
+
+    baseReportPoints: 100,
+
+    comboResetOnError: true
+};
+```
+
+Evitar números mágicos repartidos por múltiples archivos.
 
 ---
 
 # 31. UI Architecture
 
+La UI debe reflejar el estado del juego.
+
+Componentes principales:
+
 ```text
 GameScreen
-├── HUD (Score, Combo, Productivity, Level)
-├── ReportsContainer → ReportCard[]
-├── DistractionsContainer → Distraction[]
+│
+├── HUD
+│   ├── Score
+│   ├── Combo
+│   ├── Productivity
+│   └── Level
+│
+├── ReportsContainer
+│   └── ReportCard[]
+│
+├── DistractionsContainer
+│   └── Distraction[]
+│
 └── GameOverScreen
 ```
 
@@ -588,69 +1034,212 @@ GameScreen
 
 # 32. Report Card
 
-Cada reporte muestra: REPORT ID, WORD, MODIFIER, TIMER, INPUT. El input actual se muestra visualmente para feedback inmediato.
+Cada reporte debe mostrar:
+
+```text
+REPORT ID
+WORD
+MODIFIER
+TIMER
+INPUT
+```
+
+Ejemplo:
+
+```text
+┌──────────────────────┐
+│ REPORT #124          │
+│                      │
+│     servidor         │
+│                      │
+│     🔴 MAYÚSCULAS    │
+│                      │
+│     SERV             │
+│                      │
+│     04.21s           │
+└──────────────────────┘
+```
+
+El input actual debe mostrarse visualmente para dar feedback inmediato.
 
 ---
 
 # 33. Visual Feedback
 
-* **Correct**: sonido, animación, puntos, combo, el reporte desaparece.
-* **Incorrect**: shake, sonido de error, feedback visual, penalización.
-* **Expired**: el reporte desaparece, animación de error, penalización.
-* **Distraction removed**: click effect, sonido, animación de desaparición.
+Cada acción importante debe generar feedback.
+
+## Correct
+
+* Sonido.
+* Animación.
+* Puntos.
+* Combo.
+* Reporte desaparece.
+
+## Incorrect
+
+* Shake.
+* Sonido de error.
+* Feedback visual.
+* Penalización.
+
+## Expired
+
+* Reporte desaparece.
+* Animación de error.
+* Penalización.
+
+## Distraction removed
+
+* Click effect.
+* Sonido.
+* Animación de desaparición.
 
 ---
 
 # 34. Input UX
 
-El teclado está siempre activo durante `PLAYING`. No usar un `<input>` visible como mecánica principal. El texto escrito se muestra como feedback dentro del reporte activo.
+El jugador nunca debería preguntarse:
+
+> "¿Dónde tengo que escribir?"
+
+El teclado debe estar siempre activo durante `PLAYING`.
+
+No utilizar un `<input>` visible como mecánica principal.
+
+El texto escrito debe mostrarse como feedback dentro del reporte activo.
 
 ---
 
 # 35. Event Communication
 
-Evitar acoplar sistemas directamente. Usar `EventTarget` + `CustomEvent`. No implementar un event bus complejo.
+Evitar acoplar sistemas directamente.
+
+Ejemplo:
 
 ```text
-ReportManager → reportCompleted → Game → ScoreSystem → HUD
+ReportManager
+      ↓
+reportCompleted
+      ↓
+Game
+      ↓
+ScoreSystem
+      ↓
+HUD
 ```
+
+En JavaScript puede utilizarse un sistema de eventos sencillo:
+
+```javascript
+EventTarget
+CustomEvent
+```
+
+No implementar un event bus complejo.
 
 ---
 
 # 36. Main Game Controller
 
-`Game.js` coordina: `ReportManager`, `DistractionManager`, `ScoreSystem`, `DifficultySystem`, `AudioManager`, `GameUI`.
+`Game.js` coordina los sistemas principales:
 
-Responsable de: inicializar, iniciar partida, pausar, reiniciar, actualizar sistemas, finalizar partida.
+```text
+Game
+│
+├── ReportManager
+├── DistractionManager
+├── ScoreSystem
+├── DifficultySystem
+├── AudioManager
+└── GameUI
+```
+
+El `Game` controller es responsable de:
+
+* Inicializar.
+* Iniciar partida.
+* Pausar.
+* Reiniciar.
+* Actualizar sistemas.
+* Finalizar partida.
 
 ---
 
 # 37. Responsibilities
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `Game.js` | Orquestación general |
-| `ReportManager.js` | Lógica de reportes |
-| `ModifierSystem.js` | Transformaciones de palabras |
-| `DistractionManager.js` | Lógica de distracciones |
-| `ScoreSystem.js` | Score y combo |
-| `DifficultySystem.js` | Escalado de dificultad |
-| `GameUI.js` | Actualización general de interfaz |
-| `ReportUI.js` | Render de reportes |
-| `HUD.js` | Score, combo, productividad y nivel |
-| `AudioManager.js` | Sonidos y música |
+## Game.js
+
+Orquestación general.
+
+## ReportManager.js
+
+Lógica de reportes.
+
+## ModifierSystem.js
+
+Transformaciones de palabras.
+
+## DistractionManager.js
+
+Lógica de distracciones.
+
+## ScoreSystem.js
+
+Score y combo.
+
+## DifficultySystem.js
+
+Escalado de dificultad.
+
+## GameUI.js
+
+Actualización general de interfaz.
+
+## ReportUI.js
+
+Render de reportes.
+
+## HUD.js
+
+Score, combo, productividad y nivel.
+
+## AudioManager.js
+
+Sonidos y música.
 
 ---
 
 # 38. Data vs Logic
 
-Los datos permanecen separados de la lógica en `src/data/`. No hardcodear listas de palabras dentro de `ReportManager`.
+Los datos deben permanecer separados de la lógica.
+
+Ejemplo:
+
+```text
+data/
+├── words.js
+├── modifiers.js
+└── distractions.js
+```
+
+No hardcodear listas de palabras dentro de `ReportManager`.
 
 ---
 
 # 39. Error Handling
 
-No implementar un sistema complejo de errores. Sí evitar: null references, reportes inexistentes, IDs duplicados, eventos ejecutándose después de `GAME_OVER`, timers activos después de reiniciar.
+Durante la Game Jam no implementar un sistema complejo de errores.
+
+Sí deben evitarse:
+
+* Null references.
+* Reportes inexistentes.
+* IDs duplicados.
+* Eventos ejecutándose después de GAME_OVER.
+* Timers activos después de reiniciar.
+
+Antes de modificar estado:
 
 ```javascript
 if (gameState.status !== "PLAYING") {
@@ -658,11 +1247,21 @@ if (gameState.status !== "PLAYING") {
 }
 ```
 
+cuando sea necesario.
+
 ---
 
 # 40. Performance
 
-Evitar: crear cientos de elementos DOM innecesariamente, timers infinitos, listeners duplicados, animaciones JavaScript cuando CSS puede realizarlas, re-renderizar toda la interfaz en cada frame.
+El juego debe mantenerse ligero.
+
+Evitar:
+
+* Crear cientos de elementos DOM innecesariamente.
+* Timers infinitos.
+* Listeners duplicados.
+* Animaciones JavaScript cuando CSS puede realizarlas.
+* Re-renderizar toda la interfaz en cada frame.
 
 Actualizar únicamente los elementos que cambian.
 
@@ -670,12 +1269,26 @@ Actualizar únicamente los elementos que cambian.
 
 # 41. CSS
 
-Clases semánticas:
+Utilizar clases semánticas.
+
+Ejemplo:
 
 ```text
-.report / .report--active / .report--expired
-.report__word / .report__modifier / .report__timer / .report__input
-.modifier--red / .modifier--blue / .modifier--green
+.report
+.report--active
+.report--expired
+.report__word
+.report__modifier
+.report__timer
+.report__input
+```
+
+Para modificadores:
+
+```text
+.modifier--red
+.modifier--blue
+.modifier--green
 ```
 
 Preferir CSS variables para colores y valores reutilizables.
@@ -684,13 +1297,33 @@ Preferir CSS variables para colores y valores reutilizables.
 
 # 42. Animations
 
-Preferir `transform` y `opacity`. Evitar modificar continuamente `top` / `left` / `width` / `height` mediante JavaScript cuando sea posible.
+Preferir:
+
+```css
+transform
+opacity
+```
+
+para animaciones.
+
+Evitar modificar continuamente:
+
+```css
+top
+left
+width
+height
+```
+
+mediante JavaScript cuando sea posible.
 
 ---
 
 # 43. Audio
 
-`AudioManager` abstrae el acceso al audio:
+`AudioManager` debe abstraer el acceso al audio.
+
+API conceptual:
 
 ```javascript
 audio.play("reportComplete");
@@ -700,11 +1333,13 @@ audio.play("combo");
 audio.play("gameOver");
 ```
 
-El resto del juego no manipula directamente objetos `Audio`.
+El resto del juego no debe manipular directamente objetos `Audio`.
 
 ---
 
 # 44. MVP
+
+El MVP obligatorio es:
 
 ```text
 [1] Start Game
@@ -725,41 +1360,75 @@ El resto del juego no manipula directamente objetos `Audio`.
 [16] Restart
 ```
 
+Si todos estos puntos funcionan, existe un juego jugable.
+
 ---
 
 # 45. Development Priority
 
+Implementar en este orden:
+
 ## Phase 1 — Core
 
-Game state, game loop, keyboard input, report generation, word validation, report completion.
+* Game state.
+* Game loop.
+* Keyboard input.
+* Report generation.
+* Word validation.
+* Report completion.
 
 ## Phase 2 — Modifiers
 
-Uppercase, reverse, vowel shift.
+* Uppercase.
+* Reverse.
+* Vowel shift.
 
 ## Phase 3 — Game Systems
 
-Score, combo, productivity, timer, difficulty.
+* Score.
+* Combo.
+* Productivity.
+* Timer.
+* Difficulty.
 
 ## Phase 4 — Distractions
 
-Spawn, click, removal, lifetime, penalty.
+* Spawn.
+* Click.
+* Removal.
+* Lifetime.
+* Penalty.
 
 ## Phase 5 — Polish
 
-Animations, sound, particles, screen shake, better UI, game over screen.
+* Animations.
+* Sound.
+* Particles.
+* Screen shake.
+* Better UI.
+* Game over screen.
 
 ---
 
 # 46. Definition of Done
 
-Una feature está terminada cuando: funciona en navegador, no genera errores en consola, puede reiniciarse correctamente, no deja timers/listeners activos incorrectamente, no rompe otros sistemas, tiene feedback visual mínimo, su código es sencillo de modificar.
+Una feature se considera terminada cuando:
+
+* Funciona en navegador.
+* No genera errores en consola.
+* Puede reiniciarse correctamente.
+* No deja timers/listeners activos incorrectamente.
+* No rompe otros sistemas.
+* Tiene feedback visual mínimo.
+* Su código es sencillo de modificar.
 
 ---
 
 # 47. Instructions for AI Coding Agents
 
 Este README es el contexto técnico principal del proyecto.
+
+Cuando una IA modifique el código:
 
 1. Leer primero la estructura existente.
 2. Reutilizar sistemas existentes.
@@ -774,9 +1443,32 @@ Este README es el contexto técnico principal del proyecto.
 11. Mantener compatibilidad con navegadores modernos.
 12. No sobreingenierizar.
 
-Antes de modificar código, identificar: qué sistema es responsable, qué estado necesita, qué otros sistemas dependen de él, si ya existe una implementación reutilizable.
+### Antes de modificar código
 
-Para nuevas funcionalidades, preferir agregar comportamiento a un sistema existente sobre crear un nuevo sistema si ambos resuelven el problema.
+Identificar:
+
+```text
+¿Qué sistema es responsable de esta funcionalidad?
+¿Qué estado necesita?
+¿Qué otros sistemas dependen de él?
+¿Existe ya una implementación reutilizable?
+```
+
+### Para nuevas funcionalidades
+
+Preferir:
+
+```text
+Agregar comportamiento a un sistema existente
+```
+
+sobre:
+
+```text
+Crear un nuevo sistema
+```
+
+si ambos resuelven correctamente el problema.
 
 ---
 
@@ -784,30 +1476,74 @@ Para nuevas funcionalidades, preferir agregar comportamiento a un sistema existe
 
 ## DO
 
-Mantener funciones pequeñas, nombres descriptivos, responsabilidades claras, reutilizar código, usar constantes para configuración, usar ES Modules, comentar solo lógica no obvia, probar inmediatamente después de cada cambio.
+```text
+✓ Mantener funciones pequeñas.
+✓ Utilizar nombres descriptivos.
+✓ Mantener responsabilidades claras.
+✓ Reutilizar código.
+✓ Usar constantes para configuración.
+✓ Usar ES Modules.
+✓ Comentar únicamente lógica no obvia.
+✓ Probar inmediatamente después de cada cambio.
+```
 
 ## DON'T
 
-No agregar Redux, React ni TypeScript. No crear clases innecesarias, patrones Enterprise ni una API/backend. No agregar librerías para funcionalidades triviales. No refactorizar todo el proyecto para una feature pequeña.
+```text
+✗ No agregar Redux.
+✗ No agregar React.
+✗ No agregar TypeScript.
+✗ No crear clases innecesarias.
+✗ No crear patrones Enterprise.
+✗ No crear una API/backend.
+✗ No agregar librerías para funcionalidades triviales.
+✗ No refactorizar todo el proyecto para una feature pequeña.
+```
 
 ---
 
 # 49. Design Principle
 
+La prioridad del proyecto es:
+
 ```text
-FUN → GAMEPLAY → FEEDBACK → POLISH → ARCHITECTURE
+FUN
+ ↓
+GAMEPLAY
+ ↓
+FEEDBACK
+ ↓
+POLISH
+ ↓
+ARCHITECTURE
 ```
 
-La arquitectura debe ser suficientemente buena para desarrollar rápidamente, pero nunca el objetivo principal.
+La arquitectura debe ser suficientemente buena para desarrollar rápidamente, pero nunca debe convertirse en el objetivo principal.
 
 ---
 
 # 50. Current Game Vision
 
+La experiencia final debe sentirse como:
+
 ```text
                 OFFICE PANIC
 
-     ⌨️ TYPE FAST + 🖱️ CLICK FAST + 🧠 THINK FAST = SURVIVE
+     ⌨️ TYPE FAST
+          +
+     🖱️ CLICK FAST
+          +
+     🧠 THINK FAST
+          =
+       SURVIVE
 ```
 
-El jugador comienza pensando "solo tengo que escribir palabras" y termina pensando "tengo tres reportes pendientes, uno está al revés, una mosca está tapando otro y mi productividad está en 12%". Ese incremento de presión es el núcleo de la experiencia.
+El jugador debe comenzar pensando:
+
+> "Solo tengo que escribir palabras."
+
+y terminar pensando:
+
+> "Tengo tres reportes pendientes, uno está al revés, una mosca está tapando otro y mi productividad está en 12%."
+
+Ese incremento de presión es el núcleo de la experiencia.
