@@ -15,6 +15,7 @@ export class ReportManager extends EventTarget {
     this.modifierSystem = modifierSystem;
     this._spawnTimer = 0;
     this._nextId = 1;
+    this._recentWords = [];
 
     // Estos valores los ajusta Game desde DifficultySystem.
     this.spawnInterval = GAME_CONFIG.initialSpawnInterval;
@@ -26,6 +27,7 @@ export class ReportManager extends EventTarget {
     this.state = state;
     this._spawnTimer = 0;
     this._nextId = 1;
+    this._recentWords = [];
     this.spawnInterval = GAME_CONFIG.initialSpawnInterval;
     this.reportTime = GAME_CONFIG.initialReportTime;
     this.maxActiveReports = GAME_CONFIG.initialMaxActiveReports;
@@ -56,15 +58,40 @@ export class ReportManager extends EventTarget {
   spawnReport() {
     if (this._pendingCount() >= this.maxActiveReports) return null;
 
-    const word = randomWord();
-    const modifier = this.modifierSystem.getRandomModifier(this.state.level);
+    // Estilo ZType: cada reporte activo debe empezar con una letra distinta para
+    // que la primera tecla no sea ambigua. Ademas evitamos repetir palabras
+    // recientes.
+    const usedFirst = new Set(
+      this.state.reports
+        .filter((r) => r.status === "pending")
+        .map((r) => r.expectedInput[0].toLowerCase()),
+    );
+
+    let word;
+    let modifier;
+    let expectedInput;
+    for (let attempt = 0; attempt < 16; attempt++) {
+      word = randomWord();
+      modifier = this.modifierSystem.getRandomModifier(this.state.level);
+      expectedInput = modifier.transform(word);
+      const first = expectedInput[0].toLowerCase();
+      const firstFree = !usedFirst.has(first);
+      const notRecent = !this._recentWords.includes(word);
+      if (firstFree && notRecent) break;
+      // En los ultimos intentos basta con que la primera letra este libre.
+      if (attempt >= 10 && firstFree) break;
+    }
+
+    this._recentWords.push(word);
+    if (this._recentWords.length > 7) this._recentWords.shift();
+
     const origin = randomEdgePoint();
     const target = centerTarget();
     const report = {
       id: `report-${String(this._nextId++).padStart(3, "0")}`,
       word,
       modifier: modifier.id,
-      expectedInput: modifier.transform(word),
+      expectedInput,
       timeLimit: this.reportTime,
       remainingTime: this.reportTime,
       status: "pending",

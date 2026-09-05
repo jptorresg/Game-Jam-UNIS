@@ -406,6 +406,17 @@ body {
   z-index: 12;
 }
 
+/* Con un reporte enganchado, los demas se atenuan. */
+.reports--targeting .report:not(.report--active):not(.is-leaving) {
+  opacity: 0.42;
+}
+
+/* Sin objetivo, se marca la letra con la que se engancha cada reporte. */
+.reports--idle .report:not(.is-leaving) .report__input::first-letter {
+  color: #b9770c;
+  font-weight: bold;
+}
+
 .report--urgent {
   animation: report-pulse 0.5s ease-in-out infinite alternate;
 }

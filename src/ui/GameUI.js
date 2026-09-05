@@ -123,6 +123,12 @@ export class GameUI {
     this.els.prodbar.classList.toggle("prod-bar__fill--low", state.productivity <= 30);
     this.els.combo.parentElement.classList.toggle("hud__stat--hot", state.combo >= 5);
 
+    // Estilo ZType: sin objetivo se resalta la primera letra de cada palabra;
+    // con objetivo se atenuan las demas.
+    const targeting = state.activeReportId != null;
+    this.els.reports.classList.toggle("reports--targeting", targeting);
+    this.els.reports.classList.toggle("reports--idle", !targeting);
+
     this._renderReports(state);
     this._renderDistractions(state);
     this._renderOverlay(state);

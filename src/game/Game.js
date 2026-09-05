@@ -49,7 +49,7 @@ export class Game extends EventTarget {
     this.state.status = GameStatus.PLAYING;
     this.reportManager.reset(this.state);
     this.distractionManager.reset(this.state);
-    this._selectNextReport();
+    this._releaseTarget();
 
     window.addEventListener("keydown", this._onKeyDown);
     this._lastFrame = performance.now();
@@ -77,8 +77,11 @@ export class Game extends EventTarget {
     this._emitChange();
   }
 
-  // Seleccion del reporte activo (via click desde la UI en el MVP).
+  // Enfocar un reporte con click (opcional). Estilo ZType: normalmente no hace
+  // falta, la primera tecla ya elige objetivo. No permite cambiar de objetivo
+  // a media palabra.
   setActiveReport(id) {
+    if (this.state.currentInput !== "") return;
     if (this.reportManager.getReport(id)) {
       this.state.activeReportId = id;
       this.state.currentInput = "";
@@ -101,8 +104,11 @@ export class Game extends EventTarget {
       this._applyDifficulty();
       this.reportManager.update(deltaTime);
       this.distractionManager.update(deltaTime);
-      if (!this.reportManager.getReport(this.state.activeReportId)) {
-        this._selectNextReport();
+      if (
+        this.state.activeReportId &&
+        !this.reportManager.getReport(this.state.activeReportId)
+      ) {
+        this._releaseTarget(); // el objetivo desaparecio (expiro)
       }
       this._emitChange();
     }
@@ -130,17 +136,27 @@ export class Game extends EventTarget {
       return;
     }
 
-    const report = this.reportManager.getReport(this.state.activeReportId);
-    if (!report) return;
+    let report = this.reportManager.getReport(this.state.activeReportId);
 
     if (event.key === "Backspace") {
-      this.state.currentInput = this.state.currentInput.slice(0, -1);
-      this._emitChange();
+      if (report) {
+        this.state.currentInput = this.state.currentInput.slice(0, -1);
+        this._emitChange();
+      }
       return;
     }
 
     // Ignorar teclas que no producen un caracter (Shift, flechas, Tab...).
     if (event.key.length !== 1) return;
+
+    // Sin objetivo: la primera tecla engancha el reporte que empiece por ella
+    // (el mas urgente si hay varios). Estilo ZType.
+    if (!report) {
+      report = this._lockOnByKey(event.key);
+      if (!report) return; // ninguna palabra en pantalla empieza asi
+      this.state.activeReportId = report.id;
+      this.state.currentInput = "";
+    }
 
     const nextInput = this.state.currentInput + event.key;
     if (report.expectedInput.startsWith(nextInput)) {
@@ -153,6 +169,17 @@ export class Game extends EventTarget {
       this._onInputError();
     }
     this._emitChange();
+  }
+
+  // Reporte pendiente mas urgente cuya respuesta esperada empiece con `key`.
+  _lockOnByKey(key) {
+    let best = null;
+    for (const report of this.state.reports) {
+      if (report.status !== "pending") continue;
+      if (report.expectedInput[0] !== key) continue;
+      if (!best || report.remainingTime < best.remainingTime) best = report;
+    }
+    return best;
   }
 
   _onReportCompleted({ report, remainingRatio }) {
@@ -169,7 +196,7 @@ export class Game extends EventTarget {
       );
     }
 
-    this._selectNextReport();
+    this._releaseTarget();
     this.dispatchEvent(
       new CustomEvent("reportDone", { detail: { report, gained } }),
     );
@@ -178,7 +205,7 @@ export class Game extends EventTarget {
   _onReportExpired(report) {
     this.state.combo = 0;
     this._applyProductivityHit(GAME_CONFIG.penalties.reportExpired);
-    this._selectNextReport();
+    if (this.state.activeReportId === report.id) this._releaseTarget();
     this.dispatchEvent(new CustomEvent("reportLost", { detail: { report } }));
   }
 
@@ -220,14 +247,9 @@ export class Game extends EventTarget {
     this._emitChange();
   }
 
-  // El reporte activo por defecto es el mas urgente (el que antes llega al centro).
-  _selectNextReport() {
-    let next = null;
-    for (const report of this.state.reports) {
-      if (report.status !== "pending") continue;
-      if (!next || report.remainingTime < next.remainingTime) next = report;
-    }
-    this.state.activeReportId = next ? next.id : null;
+  // Suelta el objetivo actual. La siguiente palabra se elige con la primera tecla.
+  _releaseTarget() {
+    this.state.activeReportId = null;
     this.state.currentInput = "";
   }
 
