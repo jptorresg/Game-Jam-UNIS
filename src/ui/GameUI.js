@@ -404,6 +404,7 @@ export class GameUI {
 
   _onReportDone({ report, gained }) {
     const p = this._reportPos(report);
+    this.effects.beam(CENTER.x * 100, CENTER.y * 100, p.x, p.y);
     this.effects.burst(p.x, p.y, "good");
     this.audio.play("correct");
     if (gained > 0) {
