@@ -62,7 +62,7 @@ export const GAME_CONFIG = {
       {
         id: "rush",
         label: "HORA PICO",
-        from: 16,
+        from: 15, // 3:00 PM -> hora pico dura 2 h del juego (~20 s)
         modifiers: ["none", "uppercase", "vowelShift", "reverse"],
         distractions: true,
       },
