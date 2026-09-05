@@ -114,21 +114,32 @@ body {
   pointer-events: none;
 }
 
-/* Pared y suelo */
+/* Rejilla de pixeles sobre el fondo (no sobre las tarjetas) para reforzar el look. */
+.office__scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px 4px);
+  mix-blend-mode: multiply;
+}
+
+/* Pared y suelo: colores planos y lineas duras (pixel art). */
 .office__wall {
   position: absolute;
   inset: 0 0 32% 0;
-  background:
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 64px),
-    linear-gradient(180deg, #3b4a63, #34405a);
+  background: #3a4860;
+  background-image:
+    repeating-linear-gradient(90deg, #33405a 0 3px, transparent 3px 66px);
 }
 
 .office__floor {
   position: absolute;
   inset: 68% 0 0 0;
-  background:
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 3px, transparent 3px 90px),
-    linear-gradient(180deg, #7a5636, #5e4128);
+  background: #6f4d2c;
+  background-image:
+    repeating-linear-gradient(90deg, #5a3f24 0 4px, transparent 4px 92px);
   border-top: 4px solid #241a10;
 }
 
@@ -147,9 +158,24 @@ body {
 .office__sky {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 72% 28%, #fff7cf 0 16px, transparent 17px),
-    linear-gradient(180deg, #79b8e6 0%, #a9d6ee 55%, #e7f2dc 100%);
+  background: #7cc0ec;
+  background-image:
+    linear-gradient(180deg,
+      #7cc0ec 0 38%,
+      #9ed2f0 38% 64%,
+      #cbe8e0 64% 100%);
+}
+
+/* Sol cuadrado (pixel). */
+.office__sky::before {
+  content: "";
+  position: absolute;
+  top: 16%;
+  right: 18%;
+  width: 26px;
+  height: 26px;
+  background: #ffe9a6;
+  box-shadow: -8px 0 0 #ffe9a6, 8px 0 0 #ffe9a6, 0 -8px 0 #ffe9a6, 0 8px 0 #ffe9a6;
 }
 
 .office__window::after {
@@ -161,16 +187,15 @@ body {
     linear-gradient(var(--line), var(--line)) 0 50% / 100% 8px no-repeat;
 }
 
-/* Reloj de pared */
+/* Reloj de pared (cuadrado, pixel) */
 .office__clock {
   position: absolute;
   top: 54px;
   left: 12%;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
   background: #e9e4d3;
-  border: 5px solid var(--line);
+  border: 4px solid var(--line);
   box-shadow: var(--pixel-shadow);
 }
 
@@ -186,15 +211,16 @@ body {
   transform: translate(-50%, -100%) rotate(38deg);
 }
 
-/* Poster */
+/* Poster (dos colores planos) */
 .office__poster {
   position: absolute;
   top: 78px;
   left: 26%;
-  width: 74px;
+  width: 72px;
   height: 96px;
-  background: linear-gradient(160deg, #d98b3f 40%, #e7b06a 40%);
-  border: 5px solid var(--line);
+  background: #e0a35a;
+  background-image: linear-gradient(180deg, #d98b3f 0 46%, #e7b06a 46% 100%);
+  border: 4px solid var(--line);
   box-shadow: var(--pixel-shadow);
 }
 
@@ -203,10 +229,10 @@ body {
   position: absolute;
   bottom: 0;
   right: 6%;
-  width: 120px;
-  height: 150px;
-  background: linear-gradient(180deg, #9aa3ad, #7f888f);
-  border: 5px solid var(--line);
+  width: 116px;
+  height: 148px;
+  background: #8f98a2;
+  border: 4px solid var(--line);
   border-bottom: none;
   box-shadow: var(--pixel-shadow);
 }
@@ -245,17 +271,21 @@ body {
   border: 4px solid var(--line);
 }
 
+/* Hojas: bloques cuadrados escalonados en vez de circulos suaves. */
 .office__plant::after {
   content: "";
   position: absolute;
-  left: 0;
+  left: 8px;
   bottom: 40px;
-  width: 78px;
-  height: 92px;
-  background:
-    radial-gradient(circle at 30% 60%, #3f8a4c 0 22px, transparent 23px),
-    radial-gradient(circle at 70% 60%, #3f8a4c 0 22px, transparent 23px),
-    radial-gradient(circle at 50% 20%, #4c9d5a 0 26px, transparent 27px);
+  width: 26px;
+  height: 26px;
+  background: #4c9d5a;
+  box-shadow:
+    26px 0 0 #4c9d5a,
+    13px -22px 0 #56ab63,
+    -6px 14px 0 #3f8a4c,
+    32px 14px 0 #3f8a4c,
+    13px 2px 0 #4c9d5a;
 }
 
 /* ---------- Escenario (personaje + reportes + distracciones) ---------- */
@@ -294,7 +324,8 @@ body {
   width: 132px;
   height: 38px;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, #8a5a34, #6f4626);
+  background: #7c4f2d;
+  background-image: linear-gradient(180deg, #8a5a34 0 40%, #6f4626 40% 100%);
   border: 4px solid var(--line);
   box-shadow: var(--pixel-shadow);
   z-index: 2;
@@ -303,13 +334,12 @@ body {
 .character__shadow {
   position: absolute;
   left: 50%;
-  bottom: 0;
-  width: 104px;
-  height: 12px;
+  bottom: 2px;
+  width: 96px;
+  height: 8px;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 50%;
-  filter: blur(1px);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: -8px 0 0 rgba(0, 0, 0, 0.2), 8px 0 0 rgba(0, 0, 0, 0.2);
 }
 
 .character__sprite {
