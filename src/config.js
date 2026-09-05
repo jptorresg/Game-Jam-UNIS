@@ -42,7 +42,7 @@ export const GAME_CONFIG = {
   schedule: {
     startHour: 9,
     endHour: 17,
-    secondsPerHour: 30, // 1 hora del juego = 30 s reales -> turno = 4 min
+    secondsPerHour: 20, // 1 hora del juego = 20 s reales -> turno = ~2:40 min
     // Fases por hora. `from` es la hora a la que arranca la fase.
     phases: [
       {

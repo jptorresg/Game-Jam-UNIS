@@ -504,7 +504,7 @@ body {
 
 /* Sin objetivo, se marca la letra con la que se engancha cada reporte. */
 .reports--idle .report:not(.is-leaving) .report__input::first-letter {
-  color: #b9770c;
+  color: var(--accent);
   font-weight: bold;
 }
 
@@ -562,24 +562,25 @@ body {
 
 .report__input {
   margin-top: 4px;
-  min-height: 15px;
-  font-size: 12px;
+  min-height: 16px;
+  font-size: 13px;
   letter-spacing: 2px;
   text-align: center;
   word-break: break-all;
-  background: rgba(0, 0, 0, 0.08);
-  border: 2px solid rgba(0, 0, 0, 0.15);
-  padding: 2px;
+  /* Caja oscura para que la palabra a escribir (sobre todo AL REVES) se lea bien. */
+  background: #14141c;
+  border: 2px solid #000;
+  padding: 3px 2px;
 }
 
 .report__typed {
-  color: #1c8b3f;
+  color: #58e58a;
   font-weight: bold;
 }
 
 .report__rest {
-  color: var(--ink);
-  opacity: 0.35;
+  color: #e7e7ee;
+  opacity: 0.85;
 }
 
 .report__timerbar {
