@@ -104,14 +104,21 @@ body {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--panel-edge);
-  background: #2a3242;
-  image-rendering: pixelated;
+  background: #1c2230 url("/images/office-bg.jpg") center 42% / cover no-repeat;
 }
 
-.office__scene {
+/* Ligero oscurecido para que las tarjetas de papel resalten sobre el fondo. */
+.office::after {
+  content: "";
   position: absolute;
   inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.12) 40%, rgba(0, 0, 0, 0.35));
   pointer-events: none;
+}
+
+/* La escena dibujada en CSS se reemplaza por la imagen de fondo. */
+.office__scene {
+  display: none;
 }
 
 /* Rejilla de pixeles sobre el fondo (no sobre las tarjetas) para reforzar el look. */
@@ -292,6 +299,7 @@ body {
 .stage {
   position: absolute;
   inset: 0;
+  z-index: 1; /* por encima del oscurecido del fondo (.office::after) */
 }
 
 .stage--shake {
