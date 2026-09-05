@@ -2,14 +2,20 @@
 export const GAME_CONFIG = {
   initialProductivity: 100,
 
+  // Punto al que convergen reportes y distracciones (coordenadas normalizadas 0..1
+  // del area de juego). Es donde esta el personaje.
+  center: { x: 0.5, y: 0.52 },
+
   // --- Reportes ---
-  initialSpawnInterval: 3, // segundos entre reportes al empezar
-  minSpawnInterval: 0.9,
+  initialSpawnInterval: 3.2, // segundos entre reportes al empezar
+  minSpawnInterval: 1.1,
   initialMaxActiveReports: 3,
   maxActiveReportsCap: 6,
 
-  initialReportTime: 8, // segundos de vida de un reporte
-  minReportTime: 3.5,
+  // El "tiempo" de un reporte es lo que tarda en llegar al centro desde el borde.
+  // Mas alto = llega mas lento = mas margen para escribirlo.
+  initialReportTime: 10,
+  minReportTime: 5,
 
   // --- Puntuacion ---
   baseReportPoints: 100,
@@ -26,15 +32,15 @@ export const GAME_CONFIG = {
   comboResetOnError: true,
 
   // --- Dificultad ---
-  secondsPerLevel: 22, // sube un nivel cada N segundos
-  spawnIntervalPerLevel: 0.18, // cuanto baja el intervalo de spawn por nivel
-  reportTimePerLevel: 0.45, // cuanto baja el tiempo de reporte por nivel
+  secondsPerLevel: 25, // sube un nivel cada N segundos
+  spawnIntervalPerLevel: 0.16, // cuanto baja el intervalo de spawn por nivel
+  reportTimePerLevel: 0.42, // cuanto baja el tiempo de reporte por nivel
 
   // --- Distracciones ---
-  initialDistractionInterval: 6,
-  minDistractionInterval: 2,
-  distractionIntervalPerLevel: 0.4,
-  maxActiveDistractions: 4,
+  initialDistractionInterval: 4.5,
+  minDistractionInterval: 1.4,
+  distractionIntervalPerLevel: 0.35,
+  maxActiveDistractions: 5,
   firstDistractionLevel: 2, // no aparecen distracciones antes de este nivel
 
   // --- Penalizaciones a la productividad ---

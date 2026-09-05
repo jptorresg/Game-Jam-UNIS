@@ -198,8 +198,13 @@ export class Game extends EventTarget {
     this._emitChange();
   }
 
+  // El reporte activo por defecto es el mas urgente (el que antes llega al centro).
   _selectNextReport() {
-    const next = this.state.reports.find((r) => r.status === "pending");
+    let next = null;
+    for (const report of this.state.reports) {
+      if (report.status !== "pending") continue;
+      if (!next || report.remainingTime < next.remainingTime) next = report;
+    }
     this.state.activeReportId = next ? next.id : null;
     this.state.currentInput = "";
   }

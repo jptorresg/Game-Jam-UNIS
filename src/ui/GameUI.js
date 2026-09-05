@@ -1,10 +1,13 @@
 import { GameStatus } from "../game/Game.js";
-import { comboMultiplier } from "../config.js";
+import { GAME_CONFIG, comboMultiplier } from "../config.js";
 import { getModifier } from "../data/modifiers.js";
 
-// Refleja el estado del juego en el DOM. Actualiza solo lo que cambia:
-// mantiene mapas id -> elemento para reportes y distracciones y refresca
-// textos / posiciones en sitio, sin re-renderizar todo cada frame.
+const CENTER = GAME_CONFIG.center;
+
+// Refleja el estado del juego en el DOM. Mantiene mapas id -> elemento para
+// reportes y distracciones y solo actualiza posiciones / textos que cambian.
+// Reportes y distracciones se posicionan de forma absoluta y avanzan hacia el
+// centro (donde esta el personaje).
 export class GameUI {
   constructor(game, root) {
     this.game = game;
@@ -43,12 +46,31 @@ export class GameUI {
 
       <div class="office" data-region="office">
         <div class="office__scene" aria-hidden="true">
-          <div class="office__window"><div class="office__sky"></div></div>
+          <div class="office__wall">
+            <div class="office__window"><div class="office__sky"></div></div>
+            <div class="office__clock"></div>
+            <div class="office__poster"></div>
+          </div>
+          <div class="office__floor"></div>
+          <div class="office__cabinet"></div>
           <div class="office__plant"></div>
-          <div class="office__deskline"></div>
         </div>
-        <div class="reports" data-region="reports"></div>
-        <div class="distractions" data-region="distractions"></div>
+
+        <div class="stage" data-region="stage">
+          <div class="character" data-region="character" aria-hidden="true">
+            <div class="character__sprite">
+              <div class="px px--hair"></div>
+              <div class="px px--face"></div>
+              <div class="px px--body"></div>
+              <div class="px px--armL"></div>
+              <div class="px px--armR"></div>
+            </div>
+            <div class="character__desk"></div>
+            <div class="character__shadow"></div>
+          </div>
+          <div class="reports" data-region="reports"></div>
+          <div class="distractions" data-region="distractions"></div>
+        </div>
       </div>
 
       <div class="overlay" data-region="overlay" hidden>
@@ -63,6 +85,8 @@ export class GameUI {
       productivity: this.root.querySelector('[data-hud="productivity"]'),
       prodbar: this.root.querySelector('[data-hud="prodbar"]'),
       office: this.root.querySelector('[data-region="office"]'),
+      stage: this.root.querySelector('[data-region="stage"]'),
+      character: this.root.querySelector('[data-region="character"]'),
       reports: this.root.querySelector('[data-region="reports"]'),
       distractions: this.root.querySelector('[data-region="distractions"]'),
       overlay: this.root.querySelector('[data-region="overlay"]'),
@@ -86,11 +110,8 @@ export class GameUI {
 
   _renderReports(state) {
     const liveIds = new Set(state.reports.map((r) => r.id));
-
     for (const [id, el] of this._reportEls) {
-      if (!liveIds.has(id)) {
-        this._dismissEl(el, this._reportEls, id);
-      }
+      if (!liveIds.has(id)) this._dismissEl(el, this._reportEls, id);
     }
 
     for (const report of state.reports) {
@@ -104,34 +125,49 @@ export class GameUI {
       const isActive = report.id === state.activeReportId;
       el.classList.toggle("report--active", isActive);
 
-      const typed = isActive ? state.currentInput : "";
-      const rest = report.expectedInput.slice(typed.length);
-      el.querySelector(".report__typed").textContent = typed;
-      el.querySelector(".report__rest").textContent = rest;
-      el.querySelector(".report__timer").textContent =
-        `${report.remainingTime.toFixed(1)}s`;
+      // Avance del borde hacia el personaje. La posicion se detiene un poco antes
+      // del objetivo para no tapar al personaje; el reloj sigue hasta 0.
+      const progress = clamp01(1 - report.remainingTime / report.timeLimit);
+      const posProgress = Math.min(progress, 0.94);
+      const tx = report.targetX ?? CENTER.x;
+      const ty = report.targetY ?? CENTER.y;
+      const x = lerp(report.spawnX, tx, posProgress);
+      const y = lerp(report.spawnY, ty, posProgress);
+      const scale = (0.82 + progress * 0.26) * (isActive ? 1.08 : 1);
+      el.style.left = `${x * 100}%`;
+      el.style.top = `${y * 100}%`;
+      el.style.setProperty("--scale", scale.toFixed(3));
+      el.classList.toggle("report--urgent", progress > 0.72);
 
-      const ratio = report.remainingTime / report.timeLimit;
-      el.querySelector(".report__timerbar-fill").style.width = `${Math.max(0, ratio) * 100}%`;
-      el.classList.toggle("report--urgent", ratio < 0.3);
+      const typed = isActive ? state.currentInput : "";
+      el.querySelector(".report__typed").textContent = typed;
+      el.querySelector(".report__rest").textContent =
+        report.expectedInput.slice(typed.length);
+      el.querySelector(".report__timerbar-fill").style.width =
+        `${(1 - progress) * 100}%`;
     }
   }
 
   _createReportEl(report) {
     const modifier = getModifier(report.modifier);
     const el = document.createElement("div");
-    el.className = "report report--enter";
+    el.className = `report report--${modifier.color} report--enter`;
     el.dataset.reportId = report.id;
+    el.style.setProperty("--scale", "0.82");
+
+    const banner =
+      modifier.id === "none"
+        ? `<div class="report__tag">${report.id.toUpperCase()}</div>`
+        : `<div class="report__banner">${modifier.label}</div>`;
+
     el.innerHTML = `
-      <div class="report__head">
-        <span>${report.id.toUpperCase()}</span>
-        <span class="report__modifier modifier--${modifier.color}">${modifier.label}</span>
+      ${banner}
+      <div class="report__body">
+        <div class="report__word">${report.word}</div>
+        <div class="report__input">
+          <span class="report__typed"></span><span class="report__rest"></span>
+        </div>
       </div>
-      <div class="report__word">${report.word}</div>
-      <div class="report__input">
-        <span class="report__typed"></span><span class="report__rest"></span>
-      </div>
-      <div class="report__timer">0.0s</div>
       <div class="report__timerbar"><div class="report__timerbar-fill"></div></div>
     `;
     el.addEventListener("pointerdown", () => this.game.setActiveReport(report.id));
@@ -141,11 +177,8 @@ export class GameUI {
 
   _renderDistractions(state) {
     const liveIds = new Set(state.distractions.map((d) => d.id));
-
     for (const [id, el] of this._distractionEls) {
-      if (!liveIds.has(id)) {
-        this._dismissEl(el, this._distractionEls, id);
-      }
+      if (!liveIds.has(id)) this._dismissEl(el, this._distractionEls, id);
     }
 
     for (const distraction of state.distractions) {
@@ -162,19 +195,24 @@ export class GameUI {
 
   _createDistractionEl(distraction) {
     const el = document.createElement("div");
-    el.className = `distraction distraction--${distraction.type} distraction--enter`;
+    el.className =
+      `distraction distraction--${distraction.type} ` +
+      `distraction--${distraction.tone} distraction--enter`;
     el.dataset.distractionId = distraction.id;
 
     if (distraction.type === "popup") {
       el.innerHTML = `
-        <div class="popup__bar">SYSTEM MESSAGE <span class="popup__x">x</span></div>
-        <div class="popup__body">${distraction.glyph} Actualizacion requerida
+        <div class="popup__bar">${distraction.label}<span class="popup__x">x</span></div>
+        <div class="popup__body">
+          <span class="distraction__glyph">${distraction.glyph}</span>
+          Actualizacion requerida
           <button class="popup__ok">OK</button>
         </div>`;
-    } else if (distraction.type === "notification") {
-      el.innerHTML = `<span class="distraction__glyph">${distraction.glyph}</span> Nueva notificacion`;
     } else {
-      el.innerHTML = `<span class="distraction__glyph">${distraction.glyph}</span>`;
+      const label = distraction.label
+        ? `<span class="distraction__label">${distraction.label}</span>`
+        : "";
+      el.innerHTML = `<span class="distraction__glyph">${distraction.glyph}</span>${label}`;
     }
 
     const clear = (e) => {
@@ -205,9 +243,9 @@ export class GameUI {
     if (status === GameStatus.MENU) {
       this.els.overlayPanel.innerHTML = `
         <h1>OFFICE PANIC</h1>
-        <p>Procesa los reportes escribiendo su palabra antes de que expiren.
-        Ojo con los modificadores y las distracciones.</p>
-        <p class="overlay__hint">Escribe directo &middot; Click en un reporte para enfocarlo &middot; Esc para pausar</p>
+        <p>Los reportes llegan hacia ti desde todos lados. Escribe su palabra
+        antes de que te alcancen y elimina las distracciones con click.</p>
+        <p class="overlay__hint">Escribe directo &middot; Click para enfocar un reporte o quitar una distraccion &middot; Esc pausa</p>
         <button data-action="start">INICIAR</button>
         <p class="overlay__hint">o pulsa Enter</p>
       `;
@@ -245,13 +283,21 @@ export class GameUI {
   }
 
   _shakeScreen() {
-    this.els.office.classList.remove("office--shake");
-    void this.els.office.offsetWidth;
-    this.els.office.classList.add("office--shake");
+    this.els.stage.classList.remove("stage--shake");
+    void this.els.stage.offsetWidth;
+    this.els.stage.classList.add("stage--shake");
   }
 }
 
 function setText(el, value) {
   const text = String(value);
   if (el.textContent !== text) el.textContent = text;
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clamp01(v) {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
 }

@@ -1,9 +1,13 @@
 import { GAME_CONFIG } from "../config.js";
 import { randomWord } from "../data/words.js";
+import { randomEdgePoint, centerTarget } from "./spawn.js";
 
 // Responsable de: crear reportes, asignar palabras y modificadores, calcular la
-// respuesta esperada, controlar los timers y completar / expirar reportes.
+// respuesta esperada, controlar el avance hacia el centro y completar / expirar.
 // No renderiza HTML ni toca la puntuacion: emite eventos para que Game reaccione.
+//
+// El "tiempo" de un reporte es lo que tarda en llegar al centro. `remainingTime`
+// va de `timeLimit` a 0; la UI interpola la posicion entre el borde y el centro.
 export class ReportManager extends EventTarget {
   constructor(state, modifierSystem) {
     super();
@@ -54,6 +58,8 @@ export class ReportManager extends EventTarget {
 
     const word = randomWord();
     const modifier = this.modifierSystem.getRandomModifier(this.state.level);
+    const origin = randomEdgePoint();
+    const target = centerTarget();
     const report = {
       id: `report-${String(this._nextId++).padStart(3, "0")}`,
       word,
@@ -63,6 +69,10 @@ export class ReportManager extends EventTarget {
       remainingTime: this.reportTime,
       status: "pending",
       points: GAME_CONFIG.baseReportPoints,
+      spawnX: origin.x,
+      spawnY: origin.y,
+      targetX: target.x,
+      targetY: target.y,
     };
     this.state.reports.push(report);
     this.dispatchEvent(new CustomEvent("reportSpawned", { detail: { report } }));
