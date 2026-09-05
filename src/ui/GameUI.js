@@ -49,7 +49,16 @@ export class GameUI {
   constructor(game, root, audio = null) {
     this.game = game;
     this.root = root;
-    this.audio = audio || { play() {}, startLoop() {}, stopLoop() {}, stopAllLoops() {} };
+    this.audio =
+      audio || {
+        play() {},
+        startLoop() {},
+        stopLoop() {},
+        stopAllLoops() {},
+        playMusic() {},
+        pauseMusic() {},
+        stopMusic() {},
+      };
     this._reportEls = new Map();
     this._distractionEls = new Map();
     this._build();
@@ -192,10 +201,8 @@ export class GameUI {
       this._clearScreenEffects();
     }
     if (state.status !== this._prevStatus) {
-      if (state.status === GameStatus.GAME_OVER) {
-        this.audio.stopAllLoops();
-        this.audio.play("gameover");
-      } else if (
+      if (
+        state.status === GameStatus.GAME_OVER ||
         state.status === GameStatus.BREAK ||
         state.status === GameStatus.PAUSED ||
         state.status === GameStatus.MENU
@@ -204,6 +211,7 @@ export class GameUI {
       }
     }
     this._prevStatus = state.status;
+    this._updateMusic(state);
 
     setText(this.els.score, state.score);
     setText(this.els.combo, `x${comboMultiplier(state.combo)}`);
@@ -417,6 +425,25 @@ export class GameUI {
   _onDistractionSpawned(distraction) {
     if (distraction.type === "fly") this.audio.startLoop(distraction.id, "fly");
     else if (distraction.type === "popup") this.audio.startLoop(distraction.id, "popup");
+    else if (distraction.type === "boss") this.audio.play("boss");
+  }
+
+  // Musica de fondo segun estado y hora del reloj.
+  _updateMusic(state) {
+    if (state.status === GameStatus.PAUSED) {
+      this.audio.pauseMusic();
+      return;
+    }
+    let track = "menu"; // MENU y BREAK
+    if (state.status === GameStatus.GAME_OVER) {
+      track = "gameover";
+    } else if (
+      state.status === GameStatus.PLAYING ||
+      state.status === GameStatus.TUTORIAL
+    ) {
+      track = state.phase === "rush" ? "rush" : "gameplay";
+    }
+    this.audio.playMusic(track);
   }
 
   _onDistractionGone({ distraction, cleared }) {

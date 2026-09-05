@@ -13,10 +13,19 @@ const SOUND_DEFS = {
   expired: { dir: "expired", count: 3, volume: 0.5 },
   combo: { dir: "combo", count: 2, volume: 0.55 },
   distractionClear: { dir: "distraction-clear", count: 2, volume: 0.5 },
-  gameover: { dir: "gameover", count: 2, volume: 0.6 },
+  sfxGameover: { dir: "gameover", count: 2, volume: 0.6 },
+  boss: { dir: "boss", count: 1, volume: 0.8 }, // voz del jefe al interrumpir
   // Bucles para distracciones activas.
   fly: { dir: "fly", count: 3, volume: 0.16, loop: true },
   popup: { dir: "popup", count: 3, volume: 0.22, loop: true },
+};
+
+// Musica de fondo (streaming, no se decodifica en buffer).
+const MUSIC_DEFS = {
+  menu: { volume: 0.3, loop: true },
+  gameplay: { volume: 0.24, loop: true },
+  rush: { volume: 0.32, loop: true },
+  gameover: { volume: 0.45, loop: false },
 };
 
 export class AudioManager {
@@ -25,8 +34,12 @@ export class AudioManager {
     this.master = null;
     this.buffers = {};
     this.enabled = true;
+    this.musicEnabled = true;
     this._loops = new Map();
     this._loading = null;
+    this._musicEl = null;
+    this.currentMusic = null;
+    this._fadeTimer = null;
   }
 
   // Debe llamarse tras un gesto del usuario (politica de autoplay del navegador).
@@ -118,5 +131,73 @@ export class AudioManager {
   setEnabled(on) {
     this.enabled = on;
     if (!on) this.stopAllLoops();
+  }
+
+  // ---------- Musica de fondo ----------
+
+  playMusic(name) {
+    if (!this.musicEnabled) return;
+    const def = MUSIC_DEFS[name];
+    if (!def) return;
+
+    if (this.currentMusic === name) {
+      if (this._musicEl && this._musicEl.paused) this._musicEl.play().catch(() => {});
+      return;
+    }
+    this.currentMusic = name;
+
+    if (!this._musicEl) {
+      this._musicEl = new Audio();
+      this._musicEl.preload = "auto";
+    }
+    const el = this._musicEl;
+
+    const swap = () => {
+      el.src = `/music/${name}.mp3`;
+      el.loop = !!def.loop;
+      el.volume = 0;
+      el
+        .play()
+        .then(() => this._fadeMusic(def.volume, 600))
+        .catch(() => {
+          this.currentMusic = null;
+        });
+    };
+
+    if (!el.paused && el.src) {
+      this._fadeMusic(0, 220);
+      setTimeout(swap, 230);
+    } else {
+      swap();
+    }
+  }
+
+  pauseMusic() {
+    if (this._musicEl) this._musicEl.pause();
+  }
+
+  stopMusic() {
+    this.currentMusic = null;
+    if (this._musicEl) this._musicEl.pause();
+  }
+
+  setMusicEnabled(on) {
+    this.musicEnabled = on;
+    if (!on) this.pauseMusic();
+    else if (this.currentMusic && this._musicEl) this._musicEl.play().catch(() => {});
+  }
+
+  _fadeMusic(target, ms) {
+    if (!this._musicEl) return;
+    clearInterval(this._fadeTimer);
+    const el = this._musicEl;
+    const steps = 14;
+    const start = el.volume;
+    let i = 0;
+    this._fadeTimer = setInterval(() => {
+      i++;
+      el.volume = Math.max(0, Math.min(1, start + (target - start) * (i / steps)));
+      if (i >= steps) clearInterval(this._fadeTimer);
+    }, ms / steps);
   }
 }
