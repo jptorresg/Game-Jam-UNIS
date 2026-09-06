@@ -853,3 +853,117 @@ body {
 .overlay__panel button:hover {
   filter: brightness(1.08);
 }
+
+/* ---------- Menu de inicio (pantalla de titulo, look pixel plano) ---------- */
+.overlay__panel--menu {
+  background: #12161f;
+  border: 4px solid var(--line);
+  border-radius: 0;
+  box-shadow: var(--pixel-shadow), 0 0 0 4px var(--panel-edge);
+  padding: 32px 40px 28px;
+  max-width: 620px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu__eyebrow {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: #8a94aa;
+  margin: 0;
+}
+
+.menu__title {
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: 6px;
+  margin: 2px 0;
+  color: var(--accent);
+  /* Sombra dura escalonada: nada de blur, aristas nitidas (pixel art). */
+  text-shadow: 4px 4px 0 var(--danger), 7px 7px 0 var(--line);
+}
+
+.menu__tagline {
+  font-size: 14px;
+  color: #d7dce6;
+  margin: 0;
+}
+
+.menu__best {
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--ok);
+  margin: 0;
+}
+
+.menu__legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin: 12px 0 4px;
+}
+
+.menu__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: #1b2130;
+  border: 3px solid var(--line);
+}
+
+.menu__card img {
+  height: 42px;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.menu__card-name {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.menu__card-desc {
+  font-size: 10px;
+  color: #9aa4b8;
+  text-align: center;
+}
+
+.menu__how {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c9d0dd;
+  margin: 2px 0 0;
+  max-width: 420px;
+}
+
+.overlay__panel--menu button {
+  border-radius: 0;
+  border: 3px solid var(--line);
+  box-shadow: var(--pixel-shadow);
+}
+
+.overlay__hint--record {
+  color: var(--accent);
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+@media (max-width: 560px) {
+  .menu__legend {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .menu__title {
+    font-size: 40px;
+  }
+}

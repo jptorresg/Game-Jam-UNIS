@@ -15,6 +15,12 @@ const SOUND_DEFS = {
   distractionClear: { dir: "distraction-clear", count: 2, volume: 0.5 },
   sfxGameover: { dir: "gameover", count: 2, volume: 0.6 },
   boss: { dir: "boss", count: 1, volume: 0.8 }, // voz del jefe al interrumpir
+  // Voz / sonido de cada distraccion al aparecer (una sola vez).
+  coworker: { dir: "coworker", count: 1, volume: 0.7 }, // "interrupcion del companero"
+  coffee: { dir: "coffee", count: 2, volume: 0.6 }, // "cafecito?"
+  meeting: { dir: "meeting", count: 1, volume: 0.55 }, // aviso de reunion virtual
+  phone: { dir: "phone", count: 2, volume: 0.4 }, // tono de celular
+  notification: { dir: "notification", count: 2, volume: 0.45 }, // push notification
   // Bucles para distracciones activas.
   fly: { dir: "fly", count: 3, volume: 0.16, loop: true },
   popup: { dir: "popup", count: 3, volume: 0.22, loop: true },

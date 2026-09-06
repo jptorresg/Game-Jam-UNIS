@@ -33,6 +33,18 @@ const DIR_BY_INDEX = {
   "-1": "northeast",
 };
 
+// Sonido de cada distraccion. Unas zumban en bucle mientras estan activas
+// (fly, popup); el resto suelta una voz o un tono al aparecer.
+const DISTRACTION_LOOP_SFX = { fly: "fly", popup: "popup" };
+const DISTRACTION_SPAWN_SFX = {
+  boss: "boss",
+  coworker: "coworker",
+  coffee: "coffee",
+  meeting: "meeting",
+  phone: "phone",
+  notification: "notification",
+};
+
 // Sufijo de color de la imagen de la carpeta segun el modificador.
 const ART_COLOR_SUFFIX = {
   none: "",
@@ -423,9 +435,13 @@ export class GameUI {
   }
 
   _onDistractionSpawned(distraction) {
-    if (distraction.type === "fly") this.audio.startLoop(distraction.id, "fly");
-    else if (distraction.type === "popup") this.audio.startLoop(distraction.id, "popup");
-    else if (distraction.type === "boss") this.audio.play("boss");
+    const loop = DISTRACTION_LOOP_SFX[distraction.type];
+    if (loop) {
+      this.audio.startLoop(distraction.id, loop);
+      return;
+    }
+    const sfx = DISTRACTION_SPAWN_SFX[distraction.type];
+    if (sfx) this.audio.play(sfx);
   }
 
   // Musica de fondo segun estado y hora del reloj.
@@ -515,14 +531,51 @@ export class GameUI {
     }
 
     this.els.overlay.hidden = false;
+    this.els.overlayPanel.classList.toggle(
+      "overlay__panel--menu",
+      status === GameStatus.MENU,
+    );
     if (status === GameStatus.MENU) {
+      const best = this._bestScore();
+      const bestLine = best
+        ? `<p class="menu__best">MEJOR MARCA &middot; ${best} pts</p>`
+        : "";
       this.els.overlayPanel.innerHTML = `
-        <h1>OFFICE PANIC</h1>
-        <p>Trabajas turnos de 9 a 5. Cada color de carpeta es un reto distinto.
-        Escribe su palabra antes de que te alcance y quita las distracciones con click.</p>
-        <p class="overlay__hint">Empieza escribiendo &middot; el turno 1 arranca con un tutorial &middot; Esc pausa</p>
-        <button data-action="start">FICHAR</button>
-        <p class="overlay__hint">o pulsa Enter</p>
+        <div class="menu">
+          <p class="menu__eyebrow">GAME JAM UNIS</p>
+          <h1 class="menu__title" data-text="OFFICE PANIC">OFFICE PANIC</h1>
+          <p class="menu__tagline">Sobrevive tu turno de 9 a 5 a base de teclado.</p>
+          ${bestLine}
+
+          <div class="menu__legend">
+            <div class="menu__card">
+              <img src="/images/reporte/reporte.png" alt="" />
+              <span class="menu__card-name">AMARILLA</span>
+              <span class="menu__card-desc">tal cual</span>
+            </div>
+            <div class="menu__card">
+              <img src="/images/reporte/reporte-rojo.png" alt="" />
+              <span class="menu__card-name">ROJA</span>
+              <span class="menu__card-desc">MAYUSCULAS</span>
+            </div>
+            <div class="menu__card">
+              <img src="/images/reporte/reporte-verde.png" alt="" />
+              <span class="menu__card-name">VERDE</span>
+              <span class="menu__card-desc">cambia vocales</span>
+            </div>
+            <div class="menu__card">
+              <img src="/images/reporte/reporte-azul.png" alt="" />
+              <span class="menu__card-name">AZUL</span>
+              <span class="menu__card-desc">al reves</span>
+            </div>
+          </div>
+
+          <p class="menu__how">Escribe la palabra de cada carpeta antes de que te
+          alcance y quita las distracciones con click.</p>
+
+          <button data-action="start">FICHAR</button>
+          <p class="overlay__hint">Enter para empezar &middot; el turno 1 trae tutorial &middot; Esc pausa</p>
+        </div>
       `;
     } else if (status === GameStatus.PAUSED) {
       this.els.overlayPanel.innerHTML = `
@@ -540,10 +593,19 @@ export class GameUI {
         <p class="overlay__hint">o pulsa Enter</p>
       `;
     } else if (status === GameStatus.GAME_OVER) {
+      const prevBest = this._bestScore();
+      const isRecord = state.score > prevBest;
+      this._saveBestScore(state.score);
+      const recordLine = isRecord
+        ? `<p class="overlay__hint overlay__hint--record">¡NUEVA MEJOR MARCA!</p>`
+        : prevBest
+          ? `<p class="overlay__hint">Mejor marca &middot; ${prevBest} pts</p>`
+          : "";
       this.els.overlayPanel.innerHTML = `
         <h1>DESPEDIDO</h1>
         <p>Tu productividad llego a cero en el turno ${state.shift}.</p>
         <p class="overlay__score">${state.score} puntos</p>
+        ${recordLine}
         <button data-action="restart">REINTENTAR</button>
         <p class="overlay__hint">o pulsa Enter</p>
       `;
@@ -557,6 +619,26 @@ export class GameUI {
         else if (action === "next") this.game.nextShift();
         else this.game.start();
       });
+    }
+  }
+
+  // Mejor puntuacion guardada en el navegador (localStorage). Si no se puede
+  // acceder, el menu simplemente no muestra marca.
+  _bestScore() {
+    try {
+      return parseInt(localStorage.getItem("officePanic.bestScore"), 10) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  _saveBestScore(score) {
+    try {
+      if (score > this._bestScore()) {
+        localStorage.setItem("officePanic.bestScore", String(score));
+      }
+    } catch {
+      /* almacenamiento no disponible */
     }
   }
 
