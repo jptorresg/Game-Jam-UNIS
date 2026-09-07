@@ -27,11 +27,14 @@ const SOUND_DEFS = {
 };
 
 // Musica de fondo (streaming, no se decodifica en buffer).
+// El volumen aqui es el nivel con el slider de musica al 100%. El slider
+// multiplica linealmente (0..1), asi que conviene que este rango sea
+// comparable al de los efectos para que se note al moverlo.
 const MUSIC_DEFS = {
-  menu: { volume: 0.3, loop: true },
-  gameplay: { volume: 0.24, loop: true },
-  rush: { volume: 0.32, loop: true },
-  gameover: { volume: 0.45, loop: false },
+  menu: { volume: 0.45, loop: true },
+  gameplay: { volume: 0.4, loop: true },
+  rush: { volume: 0.5, loop: true },
+  gameover: { volume: 0.55, loop: false },
 };
 
 export class AudioManager {
@@ -41,6 +44,10 @@ export class AudioManager {
     this.buffers = {};
     this.enabled = true;
     this.musicEnabled = true;
+    // Volumen 0..1 por categoria (multiplica al volumen propio de cada sonido).
+    // Se recuerda entre sesiones desde localStorage.
+    this.sfxVolume = readVol("sfx", 1);
+    this.musicVolume = readVol("music", 1);
     this._loops = new Map();
     this._loading = null;
     this._musicEl = null;
@@ -114,7 +121,7 @@ export class AudioManager {
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     const gain = this.ctx.createGain();
-    gain.gain.value = SOUND_DEFS[name]?.volume ?? 0.5;
+    gain.gain.value = (SOUND_DEFS[name]?.volume ?? 0.5) * this.sfxVolume;
     src.connect(gain).connect(this.master);
     src.start();
   }
@@ -128,7 +135,7 @@ export class AudioManager {
     src.buffer = buf;
     src.loop = true;
     const gain = this.ctx.createGain();
-    gain.gain.value = SOUND_DEFS[name]?.volume ?? 0.2;
+    gain.gain.value = (SOUND_DEFS[name]?.volume ?? 0.2) * this.sfxVolume;
     src.connect(gain).connect(this.master);
     src.start();
     this._loops.set(key, src);
@@ -152,6 +159,30 @@ export class AudioManager {
   setEnabled(on) {
     this.enabled = on;
     if (!on) this.stopAllLoops();
+  }
+
+  // Volumen de efectos 0..1 (se aplica a los sonidos nuevos, se recuerda).
+  setSfxVolume(v) {
+    this.sfxVolume = clamp01(v);
+    writeVol("sfx", this.sfxVolume);
+  }
+
+  // Volumen de musica 0..1 (se aplica en vivo a la pista actual, se recuerda).
+  setMusicVolume(v) {
+    this.musicVolume = clamp01(v);
+    writeVol("music", this.musicVolume);
+    const el =
+      this.currentMusic && this._musicPrefetch.get(this.currentMusic);
+    if (!el) return;
+    if (el._fadeTimer) {
+      clearInterval(el._fadeTimer);
+      el._fadeTimer = null;
+    }
+    el.volume = this._musicVolFor(this.currentMusic);
+  }
+
+  _musicVolFor(name) {
+    return (MUSIC_DEFS[name]?.volume ?? 0.3) * this.musicVolume;
   }
 
   // ---------- Musica de fondo ----------
@@ -198,7 +229,7 @@ export class AudioManager {
     el.volume = 0;
     el
       .play()
-      .then(() => this._fade(el, def.volume, 320))
+      .then(() => this._fade(el, this._musicVolFor(name), 320))
       .catch(() => {
         this.currentMusic = null;
       });
@@ -238,5 +269,28 @@ export class AudioManager {
         if (thenPause) el.pause();
       }
     }, ms / steps);
+  }
+}
+
+function clamp01(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+function readVol(kind, dflt) {
+  try {
+    const raw = localStorage.getItem(`officePanic.vol.${kind}`);
+    return raw == null ? dflt : clamp01(parseFloat(raw));
+  } catch {
+    return dflt;
+  }
+}
+
+function writeVol(kind, v) {
+  try {
+    localStorage.setItem(`officePanic.vol.${kind}`, String(v));
+  } catch {
+    /* almacenamiento no disponible */
   }
 }

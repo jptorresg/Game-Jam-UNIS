@@ -70,6 +70,10 @@ export class GameUI {
         playMusic() {},
         pauseMusic() {},
         stopMusic() {},
+        setMusicVolume() {},
+        setSfxVolume() {},
+        musicVolume: 1,
+        sfxVolume: 1,
       };
     this._reportEls = new Map();
     this._distractionEls = new Map();
@@ -131,10 +135,17 @@ export class GameUI {
           <div class="clock__phase" data-clock="phase">MANANA</div>
         </div>
 
+        <button class="pause-btn" data-region="pausebtn" type="button" aria-label="Pausar" hidden>
+          <span class="pause-btn__icon">II</span> PAUSA
+        </button>
+
         <div class="tutorial-bar" data-region="tutorialbar" hidden>
           <div class="tutorial-bar__title" data-tut="title"></div>
           <div class="tutorial-bar__desc" data-tut="desc"></div>
           <div class="tutorial-bar__count" data-tut="count"></div>
+          <button class="tutorial-bar__skip" data-region="tutskip" type="button">
+            SALTAR TUTORIAL &#9656;
+          </button>
         </div>
 
         <div class="stage" data-region="stage">
@@ -178,7 +189,11 @@ export class GameUI {
       tutDesc: this.root.querySelector('[data-tut="desc"]'),
       tutCount: this.root.querySelector('[data-tut="count"]'),
       charImg: this.root.querySelector('[data-region="charimg"]'),
+      pauseBtn: this.root.querySelector('[data-region="pausebtn"]'),
+      tutSkip: this.root.querySelector('[data-region="tutskip"]'),
     };
+    this.els.pauseBtn.addEventListener("click", () => this.game.togglePause());
+    this.els.tutSkip.addEventListener("click", () => this.game.skipTutorial());
     this.effects = new Effects(this.els.fx);
     this._blurTimer = null;
     this._blackTimer = null;
@@ -232,6 +247,8 @@ export class GameUI {
     this.els.prodbar.style.width = `${Math.max(0, state.productivity)}%`;
     this.els.prodbar.classList.toggle("prod-bar__fill--low", state.productivity <= 30);
     this.els.combo.parentElement.classList.toggle("hud__stat--hot", state.combo >= 5);
+
+    this.els.pauseBtn.hidden = state.status !== GameStatus.PLAYING;
 
     this._renderClock(state);
     this._renderTutorialBar(state);
@@ -580,8 +597,21 @@ export class GameUI {
     } else if (status === GameStatus.PAUSED) {
       this.els.overlayPanel.innerHTML = `
         <h1>PAUSA</h1>
-        <button data-action="resume">CONTINUAR</button>
-        <p class="overlay__hint">o pulsa Esc</p>
+        <div class="pausemenu">
+          <button data-action="resume">CONTINUAR</button>
+          <button data-action="restart-shift" class="btn-ghost">REINICIAR TURNO ${state.shift}</button>
+        </div>
+        <div class="soundopts">
+          <label class="soundopts__row">
+            <span>MUSICA</span>
+            <input type="range" min="0" max="100" step="5" data-opt="music" />
+          </label>
+          <label class="soundopts__row">
+            <span>EFECTOS</span>
+            <input type="range" min="0" max="100" step="5" data-opt="sfx" />
+          </label>
+        </div>
+        <p class="overlay__hint">o pulsa Esc para continuar</p>
       `;
     } else if (status === GameStatus.BREAK) {
       this.els.overlayPanel.innerHTML = `
@@ -611,15 +641,33 @@ export class GameUI {
       `;
     }
 
-    const button = this.els.overlayPanel.querySelector("button");
-    if (button) {
-      button.addEventListener("click", () => {
-        const action = button.dataset.action;
-        if (action === "resume") this.game.togglePause();
-        else if (action === "next") this.game.nextShift();
-        else this.game.start();
-      });
-    }
+    this.els.overlayPanel.querySelectorAll("[data-action]").forEach((btn) => {
+      btn.addEventListener("click", () => this._runOverlayAction(btn.dataset.action));
+    });
+
+    this.els.overlayPanel.querySelectorAll("[data-opt]").forEach((input) => {
+      const kind = input.dataset.opt;
+      input.value = Math.round(this._getVolume(kind) * 100);
+      input.addEventListener("input", () =>
+        this._setVolume(kind, Number(input.value) / 100),
+      );
+    });
+  }
+
+  _runOverlayAction(action) {
+    if (action === "resume") this.game.togglePause();
+    else if (action === "next") this.game.nextShift();
+    else if (action === "restart-shift") this.game.restartShift();
+    else this.game.start();
+  }
+
+  _getVolume(kind) {
+    return kind === "music" ? this.audio.musicVolume : this.audio.sfxVolume;
+  }
+
+  _setVolume(kind, value) {
+    if (kind === "music") this.audio.setMusicVolume(value);
+    else this.audio.setSfxVolume(value);
   }
 
   // Mejor puntuacion guardada en el navegador (localStorage). Si no se puede

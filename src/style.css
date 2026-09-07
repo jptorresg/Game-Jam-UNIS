@@ -237,6 +237,57 @@ body {
   color: var(--accent);
 }
 
+.tutorial-bar__skip {
+  margin-top: 10px;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: var(--accent);
+  border: 2px solid #000;
+  box-shadow: var(--pixel-shadow);
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.tutorial-bar__skip:hover {
+  filter: brightness(1.12);
+}
+
+/* ---------- Boton de pausa en pantalla ---------- */
+.pause-btn {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--accent);
+  background: #12161f;
+  border: 3px solid var(--line);
+  box-shadow: var(--pixel-shadow);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.pause-btn:hover {
+  filter: brightness(1.18);
+}
+
+.pause-btn[hidden] {
+  display: none;
+}
+
+.pause-btn__icon {
+  letter-spacing: -1px;
+}
+
 /* Rejilla de pixeles sobre el fondo (no sobre las tarjetas) para reforzar el look. */
 .office__scene::after {
   content: "";
@@ -578,7 +629,7 @@ body {
 }
 
 .report__word {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: bold;
   letter-spacing: 1px;
   text-align: center;
@@ -591,8 +642,8 @@ body {
   margin: 3px auto 0;
   width: fit-content;
   min-width: 78%;
-  min-height: 16px;
-  font-size: 13px;
+  min-height: 18px;
+  font-size: 15px;
   letter-spacing: 2px;
   text-align: center;
   word-break: break-all;
@@ -852,6 +903,57 @@ body {
 
 .overlay__panel button:hover {
   filter: brightness(1.08);
+}
+
+/* ---------- Menu de pausa ---------- */
+.pausemenu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.pausemenu button {
+  margin: 0;
+}
+
+.overlay__panel button.btn-ghost {
+  background: #1b2130;
+  color: #d7dce6;
+  border: 3px solid var(--line);
+  box-shadow: var(--pixel-shadow);
+  font-size: 14px;
+  padding: 10px 22px;
+}
+
+.overlay__panel button.btn-ghost:hover {
+  filter: brightness(1.25);
+}
+
+.soundopts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px auto 4px;
+  max-width: 300px;
+}
+
+.soundopts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #9aa4b8;
+}
+
+.soundopts__row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* ---------- Menu de inicio (pantalla de titulo, look pixel plano) ---------- */

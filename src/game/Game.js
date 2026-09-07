@@ -88,6 +88,26 @@ export class Game extends EventTarget {
     this._beginShift(this.state.shift + 1);
   }
 
+  // Menu de pausa: reinicia el turno actual. El score vuelve al que tenias al
+  // empezar ese turno (asi no se farmea repitiendolo). No repite el tutorial.
+  restartShift() {
+    const s = this.state.status;
+    if (s !== GameStatus.PLAYING && s !== GameStatus.PAUSED) return;
+    this.state.score = this.state.shiftStartScore ?? this.state.score;
+    this.state.elapsedTime = 0;
+    this._beginShift(this.state.shift);
+  }
+
+  // Boton "saltar tutorial": lo da por visto en esta sesion y entra al turno 1.
+  // Al recargar la pagina el tutorial vuelve a salir (es la intro de la 1a vez).
+  skipTutorial() {
+    if (this.state.status !== GameStatus.TUTORIAL) return;
+    this._tutorialDone = true;
+    this.state.reports.length = 0;
+    this._releaseTarget();
+    this._beginShift(1);
+  }
+
   stop() {
     if (this._rafId !== null) cancelAnimationFrame(this._rafId);
     this._rafId = null;
@@ -161,6 +181,7 @@ export class Game extends EventTarget {
     this.state.status = GameStatus.PLAYING;
     this.state.shift = n;
     this.state.combo = 0;
+    this.state.shiftStartScore = this.state.score; // para "reiniciar turno"
     this.state.productivity = GAME_CONFIG.initialProductivity; // 100% cada turno
     this.state.reports.length = 0;
     this.state.distractions.length = 0;
@@ -474,6 +495,7 @@ function createInitialState() {
     elapsedTime: 0,
 
     shift: 1,
+    shiftStartScore: 0,
     phase: "morning",
     clock: "9:00 AM",
     tutorialStep: 0,
