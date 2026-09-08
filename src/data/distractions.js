@@ -10,11 +10,13 @@
 // tone     : color del placeholder (clase distraction--<tone>)
 // effect   : "blur" (nubla la vista) o "black" (pantallazo oscuro)
 // effectMs : cuanto dura el efecto al tocar al personaje
+import { asset } from "../assets.js";
+
 export const DISTRACTION_TYPES = {
   fly: {
     lifetime: 10,
     speed: 46,
-    img: "/images/distracciones/mosca.png",
+    img: asset("images/distracciones/mosca.png"),
     label: "",
     tone: "bug",
     effect: "blur",
@@ -23,7 +25,7 @@ export const DISTRACTION_TYPES = {
   coworker: {
     lifetime: 14,
     speed: 24,
-    img: "/images/distracciones/companero.png",
+    img: asset("images/distracciones/companero.png"),
     label: "¿Tienes un momento?",
     tone: "person",
     effect: "blur",
@@ -32,7 +34,7 @@ export const DISTRACTION_TYPES = {
   meeting: {
     lifetime: 15,
     speed: 18,
-    img: "/images/reunion/reunion.png",
+    img: asset("images/reunion/reunion.png"),
     label: "REUNION",
     tone: "meeting",
     effect: "blur",
@@ -41,7 +43,7 @@ export const DISTRACTION_TYPES = {
   phone: {
     lifetime: 11,
     speed: 28,
-    img: "/images/distracciones/telefono.png",
+    img: asset("images/distracciones/telefono.png"),
     label: "RING RING",
     tone: "phone",
     effect: "black",
@@ -50,7 +52,7 @@ export const DISTRACTION_TYPES = {
   coffee: {
     lifetime: 12,
     speed: 26,
-    img: "/images/distracciones/cafe.png",
+    img: asset("images/distracciones/cafe.png"),
     label: "¿Un cafecito?",
     tone: "coffee",
     effect: "blur",
@@ -59,7 +61,7 @@ export const DISTRACTION_TYPES = {
   notification: {
     lifetime: 9,
     speed: 22,
-    img: "/images/distracciones/notificacion.png",
+    img: asset("images/distracciones/notificacion.png"),
     label: "Nueva notificacion",
     tone: "notif",
     effect: "black",
@@ -68,7 +70,7 @@ export const DISTRACTION_TYPES = {
   boss: {
     lifetime: 16,
     speed: 20,
-    img: "/images/distracciones/jefe.png",
+    img: asset("images/distracciones/jefe.png"),
     label: "EL JEFE",
     tone: "boss",
     effect: "black",
@@ -77,7 +79,7 @@ export const DISTRACTION_TYPES = {
   popup: {
     lifetime: 13,
     speed: 15,
-    img: "/images/distracciones/popup.png",
+    img: asset("images/distracciones/popup.png"),
     label: "",
     tone: "popup",
     effect: "black",

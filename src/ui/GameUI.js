@@ -2,6 +2,7 @@ import { GameStatus } from "../game/Game.js";
 import { GAME_CONFIG, comboMultiplier } from "../config.js";
 import { getModifier } from "../data/modifiers.js";
 import { Effects } from "./Effects.js";
+import { asset } from "../assets.js";
 
 const CENTER = GAME_CONFIG.center;
 
@@ -201,7 +202,7 @@ export class GameUI {
     // Precargar los sprites del personaje y arrancar la rotacion de reposo.
     this._charSprites = {};
     for (const name of CHAR_POSES) {
-      const src = `/images/character/${name}.png`;
+      const src = asset(`images/character/${name}.png`);
       this._charSprites[name] = src;
       const img = new Image();
       img.src = src;
@@ -343,7 +344,7 @@ export class GameUI {
 
     const fam = report.artFamily || "reporte";
     const suffix = ART_COLOR_SUFFIX[report.modifier] ?? "";
-    const artSrc = `/images/${fam}/${fam}${suffix}.png`;
+    const artSrc = asset(`images/${fam}/${fam}${suffix}.png`);
 
     // Para los modificadores, se muestra la palabra original arriba (lo que hay
     // que transformar); la caja de abajo muestra lo que se escribe de verdad.
@@ -566,22 +567,22 @@ export class GameUI {
 
           <div class="menu__legend">
             <div class="menu__card">
-              <img src="/images/reporte/reporte.png" alt="" />
+              <img src="${asset("images/reporte/reporte.png")}" alt="" />
               <span class="menu__card-name">AMARILLA</span>
               <span class="menu__card-desc">tal cual</span>
             </div>
             <div class="menu__card">
-              <img src="/images/reporte/reporte-rojo.png" alt="" />
+              <img src="${asset("images/reporte/reporte-rojo.png")}" alt="" />
               <span class="menu__card-name">ROJA</span>
               <span class="menu__card-desc">MAYUSCULAS</span>
             </div>
             <div class="menu__card">
-              <img src="/images/reporte/reporte-verde.png" alt="" />
+              <img src="${asset("images/reporte/reporte-verde.png")}" alt="" />
               <span class="menu__card-name">VERDE</span>
               <span class="menu__card-desc">cambia vocales</span>
             </div>
             <div class="menu__card">
-              <img src="/images/reporte/reporte-azul.png" alt="" />
+              <img src="${asset("images/reporte/reporte-azul.png")}" alt="" />
               <span class="menu__card-name">AZUL</span>
               <span class="menu__card-desc">al reves</span>
             </div>

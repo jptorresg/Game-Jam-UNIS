@@ -5,6 +5,8 @@
 // reproduccion, asi los efectos cortos se pueden solapar sin cortarse.
 // Cada categoria tiene varias variantes y se elige una al azar para dar variedad.
 
+import { asset } from "../assets.js";
+
 const SOUND_DEFS = {
   keypress: { dir: "keypress", count: 4, volume: 0.22 },
   correct: { dir: "correct", count: 4, volume: 0.5 },
@@ -80,7 +82,7 @@ export class AudioManager {
       if (this._musicPrefetch.has(name)) continue;
       const el = new Audio();
       el.preload = "auto";
-      el.src = `/music/${name}.mp3`;
+      el.src = asset(`music/${name}.mp3`);
       el.load();
       this._musicPrefetch.set(name, el);
     }
@@ -91,7 +93,7 @@ export class AudioManager {
     for (const [name, def] of Object.entries(SOUND_DEFS)) {
       this.buffers[name] = [];
       for (let i = 1; i <= def.count; i++) {
-        const url = `/sounds/${def.dir}/${i}.mp3`;
+        const url = asset(`sounds/${def.dir}/${i}.mp3`);
         jobs.push(
           fetch(url)
             .then((r) => r.arrayBuffer())
@@ -195,7 +197,7 @@ export class AudioManager {
     if (!el) {
       el = new Audio();
       el.preload = "auto";
-      el.src = `/music/${name}.mp3`;
+      el.src = asset(`music/${name}.mp3`);
       this._musicPrefetch.set(name, el);
     }
     return el;
