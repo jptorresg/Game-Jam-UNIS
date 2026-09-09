@@ -8,6 +8,8 @@
 
 Juego de mecanografía arcade ambientado en una oficina. Escribe palabras para repeler carpetas que convergen hacia tu personaje mientras esquivas distracciones y mantienes tu productividad por encima de cero.
 
+Juégalo aqui --> [itch.io/Office Panic](https://cruzafk18.itch.io/office-panic)
+
 ![Menu](docs/images/menu.png)
 
 ---
